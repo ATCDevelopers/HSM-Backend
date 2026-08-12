@@ -19,7 +19,7 @@ export const Address = pgTable("address", {
   district: text("district"),
   city: text("city").notNull(),
   state: text("state").notNull(),
-  zipCode: text("zip_code").notNull(),
+  PostalCode: text("Postal_code"),
   country: text("country").notNull(),
 });
 
@@ -315,9 +315,9 @@ export const DiagnosisTable = pgTable("diagnosis", {
     .references(() => PatientTable.id, { onDelete: 'cascade' }),
     
   // 2. User ID Reference (The doctor/practitioner logging the diagnosis)
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => UserTable.id),
+//   userId: uuid("user_id")
+//     .notNull()
+//     .references(() => UserTable.id),
     
   // 3. Consultation ID Reference
   consultationId: uuid("consultation_id")
