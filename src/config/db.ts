@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 export const connectDB = async (): Promise<void> => {
   try {
     // Replace this string later with a secure .env variable
-    const mongoURI = "mongodb+srv://danieltillya1_db_user:MjpBkxSov8YBXhDD@cluster0.jw7ab8p.mongodb.net";
+   
     
     await mongoose.connect(mongoURI);
     console.log(" MongoDB Connected Successfully!");
