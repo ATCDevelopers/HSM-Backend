@@ -26,19 +26,7 @@ export const auditLogs = {
 
 
 
-
-
-
-
-
-
-
-
-
-
 // 2. Address table
-
-
 
 export const Address = pgTable("address", {
   id: uuid("id").primaryKey().defaultRandom(), // .defaultRandom() is standard for uuid in pg-core
