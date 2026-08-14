@@ -4,6 +4,7 @@ import { relations } from 'drizzle-orm';
 
 // 1. ENUMS DEFINITIONS
 
+export const roleEnum = pgEnum("role", ["Admin", "Doctor", "Nurse", "Receptionist", "Patient"]);
 export const statusEnum = pgEnum("status", ["deleted", "busy", "available"]);
 export const genderEnum = pgEnum("gender", ["Male", "Female", "Other"]);
 export const bloodGroupEnum = pgEnum("blood_group", ["O+", "A+", "AB+", "B+", "O-", "A-", "AB-", "B-"]);
@@ -42,8 +43,7 @@ export const Address = pgTable("address", {
 
 //  CORE TABLES (User & Patient)
 
-// 1. Patients 
-
+// 1. System Users Table like doctors, nurse
 export const UserTable = pgTable("user", {
   id: uuid("id").primaryKey().defaultRandom(),
   firstName: text("first_name").notNull(), 
@@ -52,6 +52,7 @@ export const UserTable = pgTable("user", {
   email: text("email").unique().notNull(),
   phoneNumber: text("phone_number").notNull(), 
   password: text("password").notNull(),
+  role: roleEnum("role").notNull().default("Patient"),
   departmentId: uuid("department_id").references(() => Department.id), 
   
   imagePath: text("image_path"),
