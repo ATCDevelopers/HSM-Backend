@@ -21,11 +21,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       role: role || 'Patient',
     });
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: 'User registered successfully',
-      data: result 
+      data: result
     });
   } catch (error: any) {
+    console.error('Registration error:', error);
     res.status(400).json({ error: error.message });
   }
 };
@@ -39,7 +40,7 @@ export const registerWorker = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    if (!['Doctor', 'Nurse', 'Receptionist', 'Admin'].includes(role)) {
+    if (!['Doctor', 'Nurse', 'Receptionist', 'Admin', 'Pharmacist', 'LabTechnician', 'Cashier', 'ClinicManager', 'Accountant'].includes(role)) {
       res.status(400).json({ error: 'Invalid role for worker registration' });
       return;
     }
@@ -54,9 +55,9 @@ export const registerWorker = async (req: AuthenticatedRequest, res: Response): 
       role,
     });
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: 'Worker registered successfully',
-      data: result 
+      data: result
     });
   } catch (error: any) {
     res.status(400).json({ error: error.message });

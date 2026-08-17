@@ -2,16 +2,7 @@ import { db } from '../config/db.js';
 import { UserTable } from '../drizzle/schema.js';
 import { eq } from 'drizzle-orm';
 
-export const createUser = async (userData: {
-  firstName: string;
-  secondName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  password: string;
-  role: string;
-  
-}) => {
+export const createUser = async (userData: typeof UserTable.$inferInsert) => {
   const result = await db.insert(UserTable).values(userData).returning();
   return result[0];
 };

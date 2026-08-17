@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../config/auth.config.js';
+import { defineAbilityFor, AppAbility } from '../config/ability.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -7,6 +8,7 @@ export interface AuthenticatedRequest extends Request {
     email: string;
     role: string;
   };
+  ability?: AppAbility;
 }
 
 export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
@@ -25,5 +27,6 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
   }
 
   req.user = decoded;
+  req.ability = defineAbilityFor(decoded);
   next();
 };

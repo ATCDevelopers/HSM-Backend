@@ -8,4 +8,7 @@ const route = express.Router();
 route.post('/auth/register', register);
 route.post('/auth/register-worker', authenticateToken, adminOnly, registerWorker);
 
+
+
+
 export default route;
