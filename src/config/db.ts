@@ -6,11 +6,18 @@ import { fileURLToPath } from 'url';
 import * as schema from '../drizzle/schema.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config();
+
+
+
 
 const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
 
+
+
+
 if (!DB_HOST || !DB_PORT || !DB_USER || !DB_PASSWORD || !DB_NAME) {
+
   throw new Error(
     'Missing required database environment variables (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)'
   );
@@ -28,4 +35,9 @@ const client = postgres({
 
 export const db = drizzle(client, { schema });
 export { client as pgClient };
+
+
+
+//import postgres from 'postgres';
+
 
