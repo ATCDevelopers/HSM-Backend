@@ -1,16 +1,43 @@
-// 1. Fixed: Change 'require' to 'import' for TypeScript
-// 2. Fixed: Spelled 'mongoose' correctly
-import mongoose from 'mongoose'; 
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import * as schema from '../drizzle/schema.js';
 
-export const connectDB = async (): Promise<void> => {
-  try {
-    // Replace this string later with a secure .env variable
-   
-    
-    await mongoose.connect(mongoURI);
-    console.log(" MongoDB Connected Successfully!");
-  } catch (error) {
-    console.error("Database connection failed:", error);
-    process.exit(1); // Stop the server if database fails
-  }
-};
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config();
+
+
+
+
+const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
+
+
+
+
+if (!DB_HOST || !DB_PORT || !DB_USER || !DB_PASSWORD || !DB_NAME) {
+
+  throw new Error(
+    'Missing required database environment variables (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)'
+  );
+}
+
+const client = postgres({
+  host: DB_HOST,
+  port: Number(DB_PORT),
+  user: DB_USER,
+  password: DB_PASSWORD,
+  database: DB_NAME,
+  ssl: false,
+  connect_timeout: 10,
+});
+
+export const db = drizzle(client, { schema });
+export { client as pgClient };
+
+
+
+//import postgres from 'postgres';
+
+

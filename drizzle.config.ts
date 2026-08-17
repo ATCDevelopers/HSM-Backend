@@ -1,5 +1,5 @@
 import { defineConfig } from "drizzle-kit"
-import { Schema } from "mongoose";
+//import { Schema } from "mongoose";
 
 
 

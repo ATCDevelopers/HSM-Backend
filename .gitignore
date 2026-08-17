@@ -2,3 +2,6 @@
 .env
 /src/drizzle/migrations
 package.json
+drizzle.config.ts
+src/models/migrations
+AGENTS.md
