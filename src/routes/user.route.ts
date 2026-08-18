@@ -16,18 +16,12 @@ route.post('/auth/register-worker', authenticateToken, adminOnly, registerWorker
 route.get('/users', authenticateToken, checkAbility('read', 'User'), getUsers);
 
 
-//Here ucan search here an id of 
+//Here ucan search here an
 route.get('/users/:id', authenticateToken, checkAbility('read', 'User'), getUserByIdController);
 
 
 route.put('/users/:id', authenticateToken, checkAbility('update', 'User'), updateUserController);
-
-
-
 route.patch('/users/:id', authenticateToken, checkAbility('update', 'User'), updateUserController);
-
-
-
 route.delete('/users/:id', authenticateToken, checkAbility('delete', 'User'), deleteUserController);
 
 export default route;

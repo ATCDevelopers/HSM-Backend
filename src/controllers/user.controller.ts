@@ -45,7 +45,7 @@ export const registerWorker = async (req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    const result = await registerUser({                        
+    const result = await registerUser({
       firstName,
       secondName,
       lastName,
@@ -63,6 +63,7 @@ export const registerWorker = async (req: AuthenticatedRequest, res: Response): 
     res.status(400).json({ error: error.message });
   }
 };
+
 
 export const getUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
@@ -157,7 +158,4 @@ export const deleteUserController = async (req: AuthenticatedRequest, res: Respo
     res.status(500).json({ error: error.message || 'Failed to delete user' });
   }
 };
-
-
-
 
