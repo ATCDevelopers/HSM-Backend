@@ -4,7 +4,12 @@ import { relations } from 'drizzle-orm';
 
 // 1. ENUMS DEFINITIONS
 
-export const roleEnum = pgEnum("role", ["Admin", "Doctor", "Nurse", "Receptionist", "Pharmacist", "LabTechnician", "Cashier", "ClinicManager", "Accountant", "Patient"]);
+export const roleEnum = pgEnum("role", ["Admin",
+                                       "Doctor", "Nurse", "Receptionist",
+                                       "Pharmacist", "LabTechnician", "Cashier",
+                                       "ClinicManager", "Accountant", "Patient"]);
+
+                                       
 export const statusEnum = pgEnum("status", ["deleted", "busy", "available"]);
 export const genderEnum = pgEnum("gender", ["Male", "Female", "Other"]);
 export const bloodGroupEnum = pgEnum("blood_group", ["O+", "A+", "AB+", "B+", "O-", "A-", "AB-", "B-"]);
