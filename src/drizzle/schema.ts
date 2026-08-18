@@ -96,10 +96,19 @@ export const userPatient = pgTable('user_patient', {
 ]);
 
 
-// 5. DRIZZLE RELATIONS (For relational query API)
+// 5. TOKEN TABLE (Refresh Tokens)
+export const TokenTable = pgTable("tokens", {
+  userId: uuid("user_id").notNull().references(() => UserTable.id, { onDelete: 'cascade' }),
+  token: text("token").primaryKey(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+
+// 6. DRIZZLE RELATIONS (For relational query API)
 
 export const userTableRelations = relations(UserTable, ({ many }) => ({
   userPatients: many(userPatient),
+  tokens: many(TokenTable),
 }));
 
 export const patientTableRelations = relations(PatientTable, ({ many }) => ({
@@ -114,6 +123,13 @@ export const userPatientRelations = relations(userPatient, ({ one }) => ({
   patient: one(PatientTable, {
     fields: [userPatient.patientsId],
     references: [PatientTable.id],
+  }),
+}));
+
+export const tokenTableRelations = relations(TokenTable, ({ one }) => ({
+  user: one(UserTable, {
+    fields: [TokenTable.userId],
+    references: [UserTable.id],
   }),
 }));
 

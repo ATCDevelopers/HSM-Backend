@@ -4,7 +4,7 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { firstName, secondName, lastName, email, phoneNumber, password, role } = req.body;
+    const { firstName, secondName, lastName, email, phoneNumber, password, role, departmentId, imagePath } = req.body;
 
     if (!firstName || !lastName || !email || !phoneNumber || !password) {
       res.status(400).json({ error: 'Missing required fields' });
@@ -19,6 +19,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       phoneNumber,
       password,
       role: role || 'Patient',
+      departmentId,
+      imagePath,
+    });
+
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.status(201).json({
@@ -33,7 +42,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
 export const registerWorker = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const { firstName, secondName, lastName, email, phoneNumber, password, role } = req.body;
+    const { firstName, secondName, lastName, email, phoneNumber, password, role, departmentId, imagePath } = req.body;
 
     if (!firstName || !lastName || !email || !phoneNumber || !password || !role) {
       res.status(400).json({ error: 'Missing required fields' });
@@ -53,6 +62,15 @@ export const registerWorker = async (req: AuthenticatedRequest, res: Response): 
       phoneNumber,
       password,
       role,
+      departmentId,
+      imagePath,
+    });
+
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.status(201).json({

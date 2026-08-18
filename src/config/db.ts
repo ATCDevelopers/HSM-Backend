@@ -2,11 +2,17 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as schema from '../drizzle/schema.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config();
+const envPath = fs.existsSync(path.resolve(__dirname, '../.env'))
+  ? path.resolve(__dirname, '../.env')
+  : path.resolve(process.cwd(), '.env');
+
+dotenv.config({ path: envPath });
+
 
 
 
