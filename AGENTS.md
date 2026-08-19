@@ -54,7 +54,78 @@ Hospital systems handle highly sensitive data.
 ---
 
 
-## 8. User Roles (`Section 3.1`)
+
+
+# Module 8: Appointment Management Agent Instructions
+
+## Role & Goal
+
+You are a Senior Backend Software Engineer specializing in designing and implementing high-throughput RESTful web APIs for healthcare management systems. Your goal is to implement the API service layer for **Module 3: Appointment Management**, adhering strictly to the Software Requirements Specification (SRS).
+
+---
+
+## Functional Requirements & Endpoint Specification
+
+### 1. Doctor Schedules & Availability
+
+* `GET /api/v1/doctors/{doctorId}/availability`
+* **SRS Requirements:** AM-004, AM-008, AM-009
+* **Description:** Retrieve a doctor’s computed slot availability for a given date range. Slots must reflect system settings for slot duration and reflect real-time status (`available`, `booked`, `blocked`).
+
+
+* `POST /api/v1/doctors/{doctorId}/schedules`
+* **SRS Requirements:** AM-004, AM-009
+* **Description:** Configure or update working hours, recurring schedules, custom slot durations, and planned leave days for a doctor.
+
+
+
+### 2. Appointment Booking & Operations
+
+* `POST /api/v1/appointments`
+* **SRS Requirements:** AM-001, AM-006, AM-007, AM-010
+* **Description:** Book a new appointment. Handles regular patient bookings, portal requests, and walk-in queue entries.
+* **Constraint:** Must enforce database-level transactional checks or locking to prevent concurrent double-booking (AM-006).
+
+
+* `PUT /api/v1/appointments/{appointmentId}/reschedule`
+* **SRS Requirements:** AM-002, AM-006
+* **Description:** Move an existing appointment to a new date/time slot while re-evaluating slot availability and conflict constraints.
+
+
+* `PATCH /api/v1/appointments/{appointmentId}/cancel`
+* **SRS Requirements:** AM-003
+* **Description:** Cancel an appointment. Request body must mandate a `reason` payload for historical auditing.
+
+
+* `PATCH /api/v1/appointments/{appointmentId}/status`
+* **SRS Requirements:** AM-011
+* **Description:** Update status transitions throughout the lifecycle (`Scheduled`, `Confirmed`, `Checked In`, `Completed`, `No-Show`, `Cancelled`).
+
+
+
+### 3. Background Processing & Reporting
+
+* `POST /api/v1/appointments/send-reminders`
+* **SRS Requirements:** AM-005
+* **Description:** Cron/Worker-triggered endpoint to query upcoming appointments scheduled within the next 24 hours and queue SMS/Email notifications.
+
+
+* `GET /api/v1/appointments/reports`
+* **SRS Requirements:** AM-012
+* **Description:** Generate appointment analytics and historical logs. Must accept filter parameters (`doctorId`, `patientId`, `startDate`, `endDate`, `status`).
+
+
+
+---
+
+## Coding Standards & Testing Expectations
+
+1. **Input Validation:** Use strict schema validation (e.g., Joi, Zod, or Pydantic) on all request bodies and path parameters.
+2. **Error Handling:** Return standard HTTP status codes (`400 Bad Request`, `401 Unauthorized`, `403 Forbidden`, `409 Conflict` for booking overlaps, `500 Internal Server Error`) accompanied by structured JSON error details.
+3. **Audit Trails:** Ensure state modifications log event entries for auditing purposes.
+4. **Unit & Integration Tests:** Write unit tests for business validation logic (especially time-slot calculation and double-booking protection) and integration tests for all primary HTTP endpoints.
+
+## 9. User Roles (`Section 3.1`)
 
 | Role Code | Role Name | Primary Responsibilities |
 | :--- | :--- | :--- |
@@ -71,7 +142,7 @@ Hospital systems handle highly sensitive data.
 
 ---
 
-## 9. Permission Matrix
+## 10. Permission Matrix
 
 Agents must enforce the following module-level permissions when reading, drafting, or interacting with system components:
 

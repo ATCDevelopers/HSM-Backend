@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import userRoutes from './routes/user.route.js';
+import appointmentRoutes from './routes/appointment.js';
 import { initTokenCleanupCron } from './services/token.service.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -29,6 +30,8 @@ app.use(cookieParser());
 app.use(cors(corsOptions));
 
 app.use('/api/v1', userRoutes);
+app.use('/api/v1', appointmentRoutes);
+
 app.use("/api/v1", patientRoutes);
 
 // Initialize node-cron token cleanup job
