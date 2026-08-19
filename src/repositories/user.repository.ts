@@ -89,5 +89,32 @@ export const deleteUser = async (id: string) => {
 };
 
 
+///////////////////////////////////////////////////////////////
+
+// Tillya
+///////////////////////////////////////////////////////////////
+
+
+export const findUserByPhone = async (phoneNumber: string) => {
+  const result = await db
+    .select({ id: UserTable.id, phoneNumber: UserTable.phoneNumber })
+    .from(UserTable)
+    .where(eq(UserTable.phoneNumber, phoneNumber));
+  return result[0] || null;
+};
+
+
+// export const saveOtpToken = async (phoneNumber: string, otp: string, expiresAt: Date) => {
+//   const result = await db
+//     .insert(OtpTable)
+//     .values({
+//       phoneNumber,
+//       otp,
+//       expiresAt,
+//     })
+//     .returning({ id: OtpTable.id, phoneNumber: OtpTable.phoneNumber });
+//   return result[0] || null;
+// };
+
 
 

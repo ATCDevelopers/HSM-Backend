@@ -13,6 +13,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = fs.existsSync(path.resolve(__dirname, './.env'))
   ? path.resolve(__dirname, './.env')
   : path.resolve(process.cwd(), '.env');
+import patientRoutes from "./routes/patient.route.js";
 
 dotenv.config({ path: envPath });
 
@@ -31,6 +32,7 @@ app.use(cors(corsOptions));
 app.use('/api/v1', userRoutes);
 app.use('/api/v1', appointmentRoutes);
 
+app.use("/api/v1", patientRoutes);
 
 // Initialize node-cron token cleanup job
 initTokenCleanupCron();

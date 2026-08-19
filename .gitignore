@@ -5,3 +5,5 @@ package.json
 drizzle.config.ts
 src/models/migrations
 AGENTS.md
+config/db.ts
+drizzle.config.ts
