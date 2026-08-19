@@ -2,9 +2,21 @@ import {useEffect, useRef} from "react";
 import {Link, useLocation, useNavigate} from "react-router-dom";
 import {
     HomeIcon,
+    UsersIcon,
+    UserIcon,
+    CalendarIcon,
+    DocumentTextIcon,
+    BeakerIcon,
+    CurrencyDollarIcon,
+    ShieldCheckIcon,
+    CubeIcon,
+    BuildingOfficeIcon,
+    ChartBarIcon,
+    Cog6ToothIcon,
     ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/solid";
 import {useAuth} from "../../auth/AuthContext";
+import {modules, getModulesByRole} from "../../config/modules";
 
 /**
  * Sidebar component that provides persistent navigation for the application.
@@ -32,7 +44,24 @@ function Sidebar() {
     const fullName =
         [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || "User";
     const initial = (user?.firstName || user?.username || "U").charAt(0).toUpperCase();
-    const role = user?.roles?.[0] || "User";
+    const role = user?.roles?.[0] || "SYS_ADMIN";
+
+    // Icon mapping for modules
+    const iconMap = {
+        Home: <HomeIcon className="w-5 h-5"/>,
+        Users: <UsersIcon className="w-5 h-5"/>,
+        User: <UserIcon className="w-5 h-5"/>,
+        Calendar: <CalendarIcon className="w-5 h-5"/>,
+        FileText: <DocumentTextIcon className="w-5 h-5"/>,
+        Flask: <BeakerIcon className="w-5 h-5"/>,
+        Pill: <BeakerIcon className="w-5 h-5"/>,
+        DollarSign: <CurrencyDollarIcon className="w-5 h-5"/>,
+        Shield: <ShieldCheckIcon className="w-5 h-5"/>,
+        Package: <CubeIcon className="w-5 h-5"/>,
+        Building: <BuildingOfficeIcon className="w-5 h-5"/>,
+        BarChart: <ChartBarIcon className="w-5 h-5"/>,
+        Settings: <Cog6ToothIcon className="w-5 h-5"/>,
+    };
 
     /**
      * Sign the user out, then send them to the login screen. The provider
@@ -44,17 +73,20 @@ function Sidebar() {
     };
 
     /**
-     * Array of menu items defining the primary navigation links.
-     * Each item includes the route path, display label, and associated icon.
+     * Get accessible modules based on user role
+     * In development mode, all modules are accessible
      */
-    const menuItems = [
-        {
-            path: "/",
-            label: "Home",
-            icon: <HomeIcon className="w-5 h-5"/>,
-            exact: true
-        },
-    ];
+    const accessibleModules = role ? getModulesByRole(role) : modules;
+
+    /**
+     * Convert modules to menu items with icons
+     */
+    const menuItems = accessibleModules.map((module) => ({
+        path: module.path,
+        label: module.name,
+        icon: iconMap[module.icon] || <HomeIcon className="w-5 h-5"/>,
+        exact: module.path === "/",
+    }));
 
     /**
      * Determines if a menu item should be highlighted as active.

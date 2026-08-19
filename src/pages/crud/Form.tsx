@@ -1,4 +1,5 @@
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
+import {useParams, useNavigate} from "react-router-dom";
 import Input from "../../components/atoms/forms/Input";
 import Select from "../../components/atoms/forms/Select";
 import TextArea from "../../components/atoms/forms/TextArea";
@@ -9,6 +10,7 @@ import FileUpload from "../../components/atoms/forms/FileUpload";
 import DateTimePicker from "../../components/atoms/forms/DateTimePicker";
 import FieldSet from "../../components/atoms/forms/FieldSet";
 import Button from "../../components/atoms/ui/Button";
+import {resourceSchemas} from "../../config/resourceSchemas";
 
 /**
  * Form Component - A comprehensive form builder with validation and multiple field types
@@ -26,6 +28,7 @@ import Button from "../../components/atoms/ui/Button";
  * - Multi-step forms and wizards
  * - Survey and questionnaire forms
  *
+ * @param {string} resource - Resource key to look up in resourceSchemas (for CRUD)
  * @param {Array} fields - Array of field configuration objects
  * @param {Object} initialValues - Initial form data values
  * @param {Function} onSubmit - Function called when form is submitted: (formData) => {}
@@ -51,6 +54,10 @@ import Button from "../../components/atoms/ui/Button";
  *   onSubmit={handleRegistration}
  *   loading={isRegistering}
  * />
+ *
+ * @example
+ * // CRUD form using resource schema
+ * <Form resource="patients" />
  *
  * @example
  * // Complex form with fieldsets and validation
@@ -98,19 +105,90 @@ import Button from "../../components/atoms/ui/Button";
  * />
  */
 function Form({
-                  fields = [],
-                  initialValues = {},
+                  resource,
+                  fields,
+                  initialValues,
                   onSubmit,
                   onCancel,
-                  loading = false,
+                  loading,
                   className = "",
-                  submitText = "Submit",
-                  cancelText = "Cancel",
+                  submitText,
+                  cancelText,
                   showSubmit = true,
                   showCancel = true,
                   ...props
-              }) {
-    const [formData, setFormData] = useState(initialValues);
+              }: any) {
+    const {id} = useParams();
+    const navigate = useNavigate();
+    
+    // Derive props from resource schema if resource prop is provided
+    let derivedFields = fields || [];
+    let derivedInitialValues = initialValues || {};
+    let derivedOnSubmit = onSubmit;
+    let derivedOnCancel = onCancel;
+    let derivedLoading = loading || false;
+    let derivedSubmitText = submitText || "Submit";
+    let derivedCancelText = cancelText || "Cancel";
+    const [isResourceMode, setIsResourceMode] = useState(false);
+
+    if (resource && resourceSchemas[resource]) {
+        setIsResourceMode(true);
+        const schema = resourceSchemas[resource];
+        
+        // Convert schema fields to form fields
+        derivedFields = schema.fields.map(field => ({
+            name: field.key,
+            type: field.type === "textarea" ? "textarea" : 
+                  field.type === "select" ? "select" :
+                  field.type === "date" ? "date" : "input",
+            label: field.label,
+            required: field.required,
+            options: field.options,
+            ...(field.type === "text" && { inputType: "text" }),
+            ...(field.type === "email" && { inputType: "email" }),
+            ...(field.type === "tel" && { inputType: "tel" }),
+            ...(field.type === "number" && { inputType: "number" }),
+        }));
+
+        // Fetch existing data if editing
+        useEffect(() => {
+            if (id) {
+                schema.api.getById(id)
+                    .then(response => {
+                        const raw = response.data;
+                        const data = Array.isArray(raw) ? raw[0] : (raw?.data || raw);
+                        setFormData(data);
+                    })
+                    .catch(err => {
+                        console.error("Failed to load resource:", err);
+                    });
+            }
+        }, [id, schema.api]);
+
+        // Override submit handler for resource mode
+        derivedOnSubmit = async (formData) => {
+            try {
+                if (id) {
+                    await schema.api.update(id, formData);
+                } else {
+                    await schema.api.create(formData);
+                }
+                navigate(`/${resource}`);
+            } catch (err) {
+                console.error("Failed to save:", err);
+                throw err;
+            }
+        };
+
+        // Override cancel handler for resource mode
+        derivedOnCancel = () => {
+            navigate(`/${resource}`);
+        };
+
+        derivedSubmitText = id ? "Update" : "Create";
+    }
+
+    const [formData, setFormData] = useState(derivedInitialValues);
     const [errors, setErrors] = useState({});
 
     const componentMap = {
@@ -154,14 +232,14 @@ function Form({
 
     const validateForm = () => {
         const newErrors = {};
-        validateFields(fields, newErrors);
+        validateFields(derivedFields, newErrors);
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (validateForm()) onSubmit(formData);
+        if (validateForm()) derivedOnSubmit(formData);
     };
 
     const renderField = (field, index) => {
@@ -259,7 +337,7 @@ function Form({
     return (
         <form onSubmit={handleSubmit}
               className={`space-y-6 ${className}`} {...props}>
-            {fields.map((field, index) => renderField(field, index))}
+            {derivedFields.map((field, index) => renderField(field, index))}
             {(showSubmit || showCancel) && (
                 <div
                     className="flex items-center justify-end space-x-3 pt-4 border-t">
@@ -267,8 +345,8 @@ function Form({
                         <Button
                             type="button"
                             variant="secondary"
-                            onClick={onCancel}
-                            disabled={loading}
+                            onClick={derivedOnCancel}
+                            disabled={derivedLoading}
                         >
                             {cancelText}
                         </Button>
@@ -277,10 +355,11 @@ function Form({
                         <Button
                             type="submit"
                             variant="primary"
-                            loading={loading}
-                            disabled={loading}
+                            loading={derivedLoading}
+                            disabled={derivedLoading}
+                            onClick={handleSubmit}
                         >
-                            {submitText}
+                            {derivedSubmitText}
                         </Button>
                     )}
                 </div>

@@ -10,6 +10,12 @@ import Register from "../pages/auth/Register";
 // browser only fetches when the user actually navigates to it. This shrinks the
 // initial bundle from "the whole app" down to just the login screen.
 const Home = lazy(() => import("../pages/home/Home"));
+const Dashboard = lazy(() => import("../pages/dashboard/Index"));
+
+// Standard CRUD pages - reused for all resources
+const Index = lazy(() => import("../pages/crud/Index"));
+const Show = lazy(() => import("../pages/crud/Show"));
+const Form = lazy(() => import("../pages/crud/Form"));
 
 /** Lightweight fallback shown while a lazily-loaded page chunk is fetched. */
 function RouteFallback() {
@@ -39,6 +45,15 @@ function AppRoutes() {
                 >
                     {/* Home */}
                     <Route path="/" element={<Home/>}/>
+                    
+                    {/* Dashboard */}
+                    <Route path="/dashboard" element={<Dashboard/>}/>
+                    
+                    {/* Patients - CRUD routes */}
+                    <Route path="/patients" element={<Index resource="patients"/>}/>
+                    <Route path="/patients/new" element={<Form resource="patients"/>}/>
+                    <Route path="/patients/:id" element={<Show resource="patients"/>}/>
+                    <Route path="/patients/:id/edit" element={<Form resource="patients"/>}/>
                 </Route>
             </Routes>
         </Suspense>

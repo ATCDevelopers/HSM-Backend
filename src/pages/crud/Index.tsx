@@ -6,11 +6,13 @@ import Button from "../../components/atoms/ui/Button";
 import Modal from "../../components/atoms/ui/Modal";
 import Alert from "../../components/atoms/ui/Alert";
 import {extractList, extractMeta} from "../../services/apiResponse";
+import {resourceSchemas} from "../../config/resourceSchemas";
 
 function Index({
-                   resourceName = "Resource",
+                   resource,
+                   resourceName,
                    apiService,
-                   columns = [],
+                   columns,
                    pageSize = 10,
                    enableEdit = true,
                    enableDelete = true,
@@ -24,6 +26,27 @@ function Index({
                    onRowClick,
                }) {
     const navigate = useNavigate();
+
+    // Derive props from resource schema if resource prop is provided
+    let derivedResourceName = resourceName || "Resource";
+    let derivedApiService = apiService;
+    let derivedColumns = columns || [];
+    let derivedEditRoute = editRoute;
+    let derivedShowRoute = showRoute;
+    let derivedOnRowClick = onRowClick;
+
+    if (resource && resourceSchemas[resource]) {
+        const schema = resourceSchemas[resource];
+        derivedResourceName = schema.name;
+        derivedApiService = schema.api;
+        derivedColumns = schema.listColumns.map(key => ({
+            key,
+            title: schema.fields.find(f => f.key === key)?.label || key,
+        }));
+        derivedEditRoute = editRoute || `/${resource}/edit`;
+        derivedShowRoute = showRoute || `/${resource}`;
+        derivedOnRowClick = onRowClick || ((row) => navigate(`/${resource}/${row.id}`));
+    }
 
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -42,29 +65,29 @@ function Index({
         try {
             setLoading(true);
             setError("");
-            const response = await apiService.getAll({page, per_page: size});
+            const response = await derivedApiService.getAll({page, per_page: size});
             const list = extractList(response);
             const {totalPages, totalItems} = extractMeta(response, list.length);
             setData(list);
             setTotalPages(totalPages);
             setTotalItems(totalItems);
         } catch (err) {
-            setError(`Failed to load ${resourceName.toLowerCase()}s: ${err.message}`);
+            setError(`Failed to load ${derivedResourceName.toLowerCase()}s: ${err.message}`);
         } finally {
             setLoading(false);
         }
-    }, [apiService, resourceName]);
+    }, [derivedApiService, derivedResourceName]);
 
     const handleRestore = async () => {
         try {
             setLoading(true);
-            await apiService.restore(selectedItem.id);
-            setSuccess(`${resourceName} restored successfully`);
+            await derivedApiService.restore(selectedItem.id);
+            setSuccess(`${derivedResourceName} restored successfully`);
             setShowRestoreModal(false);
             setSelectedItem(null);
             loadData(currentPage, currentPageSize);
         } catch (err) {
-            setError(`Failed to restore ${resourceName.toLowerCase()}: ${err.message}`);
+            setError(`Failed to restore ${derivedResourceName.toLowerCase()}: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -73,13 +96,13 @@ function Index({
     const handleDelete = async () => {
         try {
             setLoading(true);
-            await apiService.delete(selectedItem.id);
-            setSuccess(`${resourceName} deleted successfully`);
+            await derivedApiService.delete(selectedItem.id);
+            setSuccess(`${derivedResourceName} deleted successfully`);
             setShowDeleteModal(false);
             setSelectedItem(null);
             loadData(currentPage, currentPageSize);
         } catch (err) {
-            setError(`Failed to delete ${resourceName.toLowerCase()}: ${err.message}`);
+            setError(`Failed to delete ${derivedResourceName.toLowerCase()}: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -88,13 +111,13 @@ function Index({
     const handleForceDelete = async () => {
         try {
             setLoading(true);
-            await apiService.forceDelete(selectedItem.id);
-            setSuccess(`${resourceName} permanently deleted`);
+            await derivedApiService.forceDelete(selectedItem.id);
+            setSuccess(`${derivedResourceName} permanently deleted`);
             setShowForceDeleteModal(false);
             setSelectedItem(null);
             loadData(currentPage, currentPageSize);
         } catch (err) {
-            setError(`Failed to permanently delete ${resourceName.toLowerCase()}: ${err.message}`);
+            setError(`Failed to permanently delete ${derivedResourceName.toLowerCase()}: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -104,7 +127,7 @@ function Index({
         setSelectedItem(item);
         switch (actionType) {
             case "edit":
-                if (editRoute) navigate(`${editRoute}/${item.id}`);
+                if (derivedEditRoute) navigate(`${derivedEditRoute}/${item.id}`);
                 break;
             case "delete":
                 setShowDeleteModal(true);
@@ -116,7 +139,7 @@ function Index({
                 setShowRestoreModal(true);
                 break;
             case "view":
-                if (showRoute) navigate(`${showRoute}/${item.id}`);
+                if (derivedShowRoute) navigate(`${derivedShowRoute}/${item.id}`);
                 break;
             default:
                 console.log("Unknown action:", actionType);
@@ -130,7 +153,7 @@ function Index({
     };
 
     const tableColumns = [
-        ...columns,
+        ...derivedColumns,
         {
             key: "actions",
             title: "Actions",
@@ -216,9 +239,9 @@ function Index({
                     loading={loading}
                     variant="default"
                     size="sm"
-                    onRowClick={onRowClick}
+                    onRowClick={derivedOnRowClick}
                     rowClassName={rowClassName}
-                    emptyMessage={`No ${resourceName.toLowerCase()}s found`}
+                    emptyMessage={`No ${derivedResourceName.toLowerCase()}s found`}
                 />
 
                 {/* Pagination Bar */}
@@ -321,7 +344,7 @@ function Index({
                             </svg>
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-900">Delete {resourceName}</h3>
+                            <h3 className="text-lg font-semibold text-gray-900">Delete {derivedResourceName}</h3>
                             {selectedItem && (
                                 <p className="mt-1 text-sm font-medium text-red-600">
                                     {[selectedItem.firstName, selectedItem.middleName, selectedItem.lastName].filter(Boolean).join(" ")
@@ -330,7 +353,7 @@ function Index({
                             )}
                             <p className="mt-2 text-sm text-gray-500">
                                 Are you sure you want to delete
-                                this {resourceName.toLowerCase()}?
+                                this {derivedResourceName.toLowerCase()}?
                                 This action can be undone by restoring it later.
                             </p>
                         </div>
@@ -373,7 +396,7 @@ function Index({
                             </svg>
                         </div>
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-900">Restore {resourceName}</h3>
+                            <h3 className="text-lg font-semibold text-gray-900">Restore {derivedResourceName}</h3>
                             {selectedItem && (
                                 <p className="mt-1 text-sm font-medium text-green-600">
                                     {[selectedItem.firstName, selectedItem.middleName, selectedItem.lastName].filter(Boolean).join(" ")
@@ -382,7 +405,7 @@ function Index({
                             )}
                             <p className="mt-2 text-sm text-gray-500">
                                 Are you sure you want to restore
-                                this {resourceName.toLowerCase()}?
+                                this {derivedResourceName.toLowerCase()}?
                                 It will become active again.
                             </p>
                         </div>
@@ -426,7 +449,7 @@ function Index({
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900">Permanently
-                                delete {resourceName}</h3>
+                                delete {derivedResourceName}</h3>
                             {selectedItem && (
                                 <p className="mt-1 text-sm font-medium text-red-600">
                                     {[selectedItem.firstName, selectedItem.middleName, selectedItem.lastName].filter(Boolean).join(" ")
@@ -435,7 +458,7 @@ function Index({
                             )}
                             <p className="mt-2 text-sm text-gray-500">
                                 This will permanently remove
-                                this {resourceName.toLowerCase()}.
+                                this {derivedResourceName.toLowerCase()}.
                                 This action <strong>cannot be undone</strong>.
                             </p>
                         </div>

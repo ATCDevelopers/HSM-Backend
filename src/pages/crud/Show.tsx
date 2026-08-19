@@ -1,6 +1,7 @@
 import {useState, useEffect} from "react";
 import {useParams} from "react-router-dom";
 import Alert from "../../components/atoms/ui/Alert";
+import {resourceSchemas} from "../../config/resourceSchemas";
 
 /**
  * CRUD Show Component - A generic component for displaying single resource details
@@ -8,6 +9,7 @@ import Alert from "../../components/atoms/ui/Alert";
  * This component fetches and displays detailed information about a single resource
  * with options to navigate back or edit the resource.
  *
+ * @param {string} resource - Resource key to look up in resourceSchemas
  * @param {string} resourceName - The name of the resource (e.g., "User", "Task")
  * @param {Object} apiService - API service object with getById method
  * @param {Array} columns - Array of column definitions for displaying fields
@@ -18,13 +20,29 @@ import Alert from "../../components/atoms/ui/Alert";
  * @param {...any} props - Additional props to spread on container div
  */
 function Show({
-                  resourceName = "Resource",
+                  resource,
+                  resourceName,
                   apiService,
-                  columns = [],
+                  columns,
                   className = "",
                   ...props
               }) {
     const {id} = useParams(); // Get resource ID from URL
+
+    // Derive props from resource schema if resource prop is provided
+    let derivedResourceName = resourceName || "Resource";
+    let derivedApiService = apiService;
+    let derivedColumns = columns || [];
+
+    if (resource && resourceSchemas[resource]) {
+        const schema = resourceSchemas[resource];
+        derivedResourceName = schema.name;
+        derivedApiService = schema.api;
+        derivedColumns = schema.fields.map(field => ({
+            key: field.key,
+            title: field.label,
+        }));
+    }
 
     // Component state
     const [data, setData] = useState(null); // Single resource data
@@ -36,12 +54,12 @@ function Show({
         const loadResource = async () => {
             try {
                 setLoading(true);
-                const response = await apiService.getById(id);
+                const response = await derivedApiService.getById(id);
                 const raw = response.data;
                 const user = Array.isArray(raw) ? raw[0] : (raw?.data || raw);
                 setData(user);
             } catch (err) {
-                setError(`Failed to load ${resourceName.toLowerCase()}: ${err.message}`);
+                setError(`Failed to load ${derivedResourceName.toLowerCase()}: ${err.message}`);
             } finally {
                 setLoading(false);
             }
@@ -50,7 +68,7 @@ function Show({
         if (id) {
             loadResource();
         }
-    }, [id, apiService, resourceName]);
+    }, [id, derivedApiService, derivedResourceName]);
 
     // Loading state
     if (loading) {
@@ -75,7 +93,7 @@ function Show({
     if (!data) {
         return (
             <Alert variant="warning" className="m-4">
-                {resourceName} not found.
+                {derivedResourceName} not found.
             </Alert>
         );
     }
@@ -86,7 +104,7 @@ function Show({
             <div className="bg-white shadow rounded-lg">
                 <div className="px-4 py-5 sm:p-6">
                     <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                        {columns.map((column) => (
+                        {derivedColumns.map((column) => (
                             <div key={column.key} className="sm:col-span-1">
                                 <dt className="text-sm font-medium text-gray-500">
                                     {column.title}
