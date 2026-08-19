@@ -167,3 +167,254 @@ export const updatePatientAndAddress = async (
   return updatedPatient;
 };
 
+
+
+//////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////
+
+import PDFDocument from "pdfkit";
+import { PatientRepository, PatientWithAddress } from "../repositories/patient.repository.js";
+
+export class PatientService {
+  private readonly patientRepository = new PatientRepository();
+
+  async generatePatientPdf(patientId: string): Promise<Buffer> {
+    const patient =
+      await this.patientRepository.getPatientForPdf(patientId);
+
+    if (!patient) {
+      throw new Error(`Patient record with ID ${patientId} not found`);
+    }
+
+    const doc = new PDFDocument({
+      size: "A4",
+      margin: 50,
+    });
+
+    const chunks: Buffer[] = [];
+
+    return new Promise<Buffer>((resolve, reject) => {
+      doc.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      doc.on("end", () => {
+        resolve(Buffer.concat(chunks));
+      });
+
+      doc.on("error", reject);
+
+      this.buildPatientPdf(doc, patient);
+
+      doc.end();
+    });
+  }
+
+  private buildPatientPdf(
+    doc: PDFKit.PDFDocument,
+    patient: PatientWithAddress
+  ): void {
+    doc
+      .fontSize(20)
+      .font("Helvetica-Bold")
+      .fillColor("#2c3e50")
+      .text("PATIENT MEDICAL PROFILE REPORT", {
+        align: "center",
+      });
+
+    doc
+      .moveDown(0.5)
+      .fontSize(9)
+      .font("Helvetica")
+      .fillColor("#7f8c8d")
+      .text(
+        `Generated on: ${new Date().toLocaleDateString()}`,
+        { align: "center" }
+      );
+
+    doc
+      .moveDown()
+      .strokeColor("#2c3e50")
+      .lineWidth(1.5)
+      .moveTo(50, doc.y)
+      .lineTo(545, doc.y)
+      .stroke();
+
+    doc.moveDown(2);
+
+    // PERSONAL DETAILS
+    doc
+      .fontSize(12)
+      .font("Helvetica-Bold")
+      .fillColor("#2c3e50")
+      .text("Personal Details");
+
+    doc.moveDown(0.5);
+
+    doc
+      .fontSize(10)
+      .font("Helvetica")
+      .fillColor("#333333")
+      .text(
+        `Full Name: ${patient.firstName} ${
+          patient.middleName ?? ""
+        } ${patient.lastName}`
+      )
+      .text(
+        `Date of Birth: ${new Date(
+          patient.dateOfBirth
+        ).toLocaleDateString()}`
+      )
+      .text(`Gender: ${patient.gender}`)
+      .text(`Blood Group: ${patient.bloodGroup}`);
+
+    doc.moveDown();
+
+    // CONTACT DETAILS
+    doc
+      .fontSize(12)
+      .font("Helvetica-Bold")
+      .fillColor("#2c3e50")
+      .text("Contact & ID Details");
+
+    doc.moveDown(0.5);
+
+    doc
+      .fontSize(10)
+      .font("Helvetica")
+      .fillColor("#333333")
+      .text(`Email: ${patient.email}`)
+      .text(`Phone: ${patient.phoneNumber}`)
+      .text(`NHIF Card: ${patient.nhifCard}`)
+      .text(`National ID: ${patient.nationalId ?? "N/A"}`);
+
+    doc.moveDown();
+
+    // ADDRESS
+    doc
+      .fontSize(12)
+      .font("Helvetica-Bold")
+      .fillColor("#2c3e50")
+      .text("Residential Address Details");
+
+    doc.moveDown(0.5);
+
+    if (patient.address) {
+      const address = patient.address;
+
+      doc
+        .fontSize(10)
+        .font("Helvetica")
+        .fillColor("#333333")
+        .text(`Country: ${address.country}`)
+        .text(`State / Region: ${address.state} / ${address.region}`)
+        .text(
+          `City / District: ${address.city} / ${
+            address.district ?? "N/A"
+          }`
+        )
+        .text(`Postal Code: ${address.postalCode ?? "N/A"}`);
+    } else {
+      doc
+        .fontSize(10)
+        .font("Helvetica-Oblique")
+        .fillColor("#c0392b")
+        .text(
+          "No primary residential address data found for this patient record."
+        );
+    }
+  }
+}
+export const patientServiceInstance = new PatientService();
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////
+
+
+
+
+
+
+
+import { DocumentRepository, CreateDocumentInput } from "../repositories/patient.repository.js";
+
+export class DocumentService {
+  private readonly documentRepository = new DocumentRepository();
+
+  /**
+   * Mantiki ya kuhifadhi mafile mapya ya wagonjwa (Scanned JPGs, PDFs n.k)
+   */
+  async uploadPatientDocument(data: CreateDocumentInput) {
+    // Unaweza kuongeza masharti hapa (kama kuangalia ukubwa wa faili au aina)
+    return await this.documentRepository.saveDocumentMetadata(data);
+  }
+
+  /**
+   * Mantiki ya kusoma na kuorodhesha nyaraka zote za mgonjwa mmoja
+   */
+  async getPatientDocumentsList(patientId: string) {
+    return await this.documentRepository.getDocumentsByPatientId(patientId);
+  }
+}
+
+
+export const documentServiceInstance = new DocumentService();
+
+
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+
+
+
+// 1. Updated repository import matching your renamed repository class
+import { PatientRepositoryDelete } from "../repositories/patient.repository.js";
+
+export class PatientServiceDelete {
+  // 2. Instantiate using your renamed repository instance
+  private readonly patientRepository = new PatientRepositoryDelete();
+
+  /**
+   * Triggers the soft-delete sequence on a patient record
+   */
+  async deactivatePatient(patientId: string, currentUserId: string) {
+    const patient = await this.patientRepository.softDeletePatient(patientId, currentUserId);
+    
+    if (!patient) {
+      throw new Error("Patient not found or could not be deactivated");
+    }
+    
+    return patient;
+  }
+
+  /**
+   * Orchestrates the search query sequence across active and deactivated rows
+   */
+  async searchAllPatients(searchTerm: string) {
+    return await this.patientRepository.searchPatients(searchTerm);
+  }
+}
+
+// 3. Export the standard module wrapper instance for controller level integration
+export const patientServiceInstance2 = new PatientServiceDelete();
+
