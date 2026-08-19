@@ -1,6 +1,6 @@
 import {useState} from "react";
 import {useNavigate, Link} from "react-router-dom";
-import {useAuth} from "@/auth/AuthContext.ts";
+import {useAuth} from "@/auth/AuthContext";
 import Guest from "../../components/layouts/Guest";
 import Input from "../../components/atoms/forms/Input";
 import Button from "../../components/atoms/ui/Button";

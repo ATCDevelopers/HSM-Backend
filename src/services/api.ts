@@ -54,11 +54,17 @@ export const setToken = (token: string): void => localStorage.setItem(TOKEN_KEY,
 export const clearToken = (): void => localStorage.removeItem(TOKEN_KEY);
 
 // Outgoing: attach the bearer token (if any) and convert camelCase -> snake_case.
+// DEV: Token is optional for development - requests work without auth
+// To re-enable authentication, see: docs/RE-ENABLE-AUTHENTICATION.md
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const token = getToken();
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    // To enforce token presence (when auth is re-enabled):
+    // if (!token) {
+    //     throw new Error("Authentication required");
+    // }
     if (isPlainObject(config.data) || Array.isArray(config.data)) {
         config.data = convertKeys(config.data, toSnake);
     }

@@ -11,6 +11,10 @@ interface AuthProviderProps {
 /**
  * AuthProvider — single source of truth for authentication.
  *
+ * DEVELOPMENT MODE: Mock user is used instead of API authentication.
+ *
+ * To re-enable authentication, see: docs/RE-ENABLE-AUTHENTICATION.md
+ *
  * Responsibilities:
  * - On first load, if a token is already in localStorage, hydrate the current
  *   user from `GET /me` (handles page refreshes / returning visitors).
@@ -23,36 +27,58 @@ export function AuthProvider({children}: AuthProviderProps) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Rehydrate the session on mount when a token is present.
+    // ========================================
+    // DEV: Mock user for development (no API calls)
+    // To re-enable: Replace this useEffect with the code block below
+    // ========================================
     useEffect(() => {
-        const token = getToken();
-        if (!token) {
-            setLoading(false);
-            return;
-        }
-
-        let active = true;
-        const fetchUser = async () => {
-            try {
-                const res = await authAPI.me();
-                if (active) setUser(extractRecord<User>(res));
-            } catch {
-                // Token is invalid/expired — the api interceptor already cleared it.
-                if (active) {
-                    clearToken();
-                    setUser(null);
-                }
-            } finally {
-                if (active) setLoading(false);
-            }
+        const mockUser: User = {
+            id: 1,
+            firstName: "Dev",
+            lastName: "User",
+            username: "dev",
+            email: "dev@example.com",
+            phoneNumber: "+1234567890",
+            roles: ["SYS_ADMIN"],
+            permissions: ["*"],
         };
-
-        fetchUser();
-
-        return () => {
-            active = false;
-        };
+        setUser(mockUser);
+        setLoading(false);
     }, []);
+
+    // ========================================
+    // ORIGINAL USER FETCHING LOGIC (commented out for development)
+    // To re-enable: Uncomment this entire block
+    // ========================================
+    // useEffect(() => {
+    //     const token = getToken();
+    //     if (!token) {
+    //         setLoading(false);
+    //         return;
+    //     }
+
+    //     let active = true;
+    //     const fetchUser = async () => {
+    //         try {
+    //             const res = await authAPI.me();
+    //             if (active) setUser(extractRecord<User>(res));
+    //         } catch {
+    //             // Token is invalid/expired — the api interceptor already cleared it.
+    //             if (active) {
+    //                 clearToken();
+    //                 setUser(null);
+    //             }
+    //         } finally {
+    //             if (active) setLoading(false);
+    //         }
+    //     };
+
+    //     fetchUser();
+
+    //     return () => {
+    //         active = false;
+    //     };
+    // }, []);
 
     const login = async (credentials: { email: string; password: string }): Promise<User> => {
         const res = await authAPI.login(credentials);
@@ -93,11 +119,25 @@ export function AuthProvider({children}: AuthProviderProps) {
      * Permission check mirroring the backend: superadmin passes everything,
      * otherwise the named "{resource}.{action}" permission must be present.
      * The backend remains the real enforcement; this only drives the UI.
+     *
+     * DEVELOPMENT MODE: All permissions granted.
+     *
+     * To re-enable authentication, see: docs/RE-ENABLE-AUTHENTICATION.md
      */
     const can = (permission: string): boolean => {
-        if (!user) return false;
-        if (user.roles?.includes("superadmin")) return true;
-        return user.permissions?.includes(permission) ?? false;
+        // ========================================
+        // DEV: Grant all permissions for development
+        // To re-enable: Remove this return and uncomment the code block below
+        // ========================================
+        return true;
+
+        // ========================================
+        // ORIGINAL PERMISSION LOGIC (commented out for development)
+        // To re-enable: Uncomment this entire block
+        // ========================================
+        // if (!user) return false;
+        // if (user.roles?.includes("superadmin")) return true;
+        // return user.permissions?.includes(permission) ?? false;
     };
 
     const value: AuthContextValue = {
