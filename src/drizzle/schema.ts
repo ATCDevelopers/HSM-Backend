@@ -140,12 +140,13 @@ export const tokenTableRelations = relations(TokenTable, ({ one }) => ({
 
 
 // Enums for strict status control
-export const appointmentStatusEnum = pgEnum("appointment_status", ["scheduled", "completed", "cancelled", "no_show"]);
+export const appointmentStatusEnum = pgEnum("appointment_status", ["scheduled", "confirmed", "checked_in", "completed", "cancelled", "no_show"]);
 export const priorityEnum = pgEnum("appointment_priority", ["low", "medium", "high", "emergency"]);
 
 export const AppointmentTable = pgTable("appointments", {
   id: uuid("id").primaryKey().defaultRandom(),
   patientId: uuid("patient_id").notNull().references(() => PatientTable.id, { onDelete: 'cascade' }),
+  doctorId: uuid("doctor_id").references(() => UserTable.id, { onDelete: 'set null' }),
 
   // core appointment fields:
   appointmentType: text("appointment_type").notNull(), // e.g., "Checkup", "Follow-up", "Surgery"
@@ -155,11 +156,46 @@ export const AppointmentTable = pgTable("appointments", {
 
   // Timing fields
   appointmentDate: timestamp("appointment_date").notNull(), // Date part
-  appointmentTime: text("appointment_time").notNull(), // time string
+  appointmentTime: text("appointment_time").notNull(), // time string (e.g. "09:00")
 
   // Audit Logs (Who created/modified this specific appointment)
   ...auditLogs
 });
+
+// Doctor Schedules Table
+export const DoctorScheduleTable = pgTable("doctor_schedules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  doctorId: uuid("doctor_id").notNull().references(() => UserTable.id, { onDelete: 'cascade' }),
+  dayOfWeek: integer("day_of_week").notNull(), // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime: text("start_time").notNull(), // e.g., "08:00"
+  endTime: text("end_time").notNull(), // e.g., "17:00"
+  slotDurationMinutes: integer("slot_duration_minutes").default(30).notNull(),
+  isWorkingDay: boolean("is_working_day").default(true).notNull(),
+  ...auditLogs,
+});
+
+// Doctor Leaves Table
+export const DoctorLeaveTable = pgTable("doctor_leaves", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  doctorId: uuid("doctor_id").notNull().references(() => UserTable.id, { onDelete: 'cascade' }),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  reason: text("reason"),
+  ...auditLogs,
+});
+
+// Appointment Audit Log Table
+export const AppointmentAuditLogTable = pgTable("appointment_audit_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  appointmentId: uuid("appointment_id").notNull().references(() => AppointmentTable.id, { onDelete: 'cascade' }),
+  action: text("action").notNull(), // e.g. "BOOKED", "RESCHEDULED", "CANCELLED", "STATUS_UPDATED"
+  previousState: text("previous_state"),
+  newState: text("new_state"),
+  reason: text("reason"),
+  performedBy: uuid("performed_by").references(() => UserTable.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 
 
 
@@ -213,7 +249,9 @@ export const userAppointment = pgTable('user_appointment', {
 //  relationships of the two tables 
 export const useTableRelations = relations(UserTable, ({ many }) => ({
   userPatients: many(userPatient),
-  userAppointments: many(userAppointment), // Added link
+  userAppointments: many(userAppointment),
+  schedules: many(DoctorScheduleTable),
+  leaves: many(DoctorLeaveTable),
 }));
 
 // AppointmentTable relations to include users
@@ -222,7 +260,37 @@ export const appointmentTableRelations = relations(AppointmentTable, ({ one, man
     fields: [AppointmentTable.patientId],
     references: [PatientTable.id],
   }),
-  userAppointments: many(userAppointment), // Added link
+  doctor: one(UserTable, {
+    fields: [AppointmentTable.doctorId],
+    references: [UserTable.id],
+  }),
+  userAppointments: many(userAppointment),
+  auditLogs: many(AppointmentAuditLogTable),
+}));
+
+export const doctorScheduleRelations = relations(DoctorScheduleTable, ({ one }) => ({
+  doctor: one(UserTable, {
+    fields: [DoctorScheduleTable.doctorId],
+    references: [UserTable.id],
+  }),
+}));
+
+export const doctorLeaveRelations = relations(DoctorLeaveTable, ({ one }) => ({
+  doctor: one(UserTable, {
+    fields: [DoctorLeaveTable.doctorId],
+    references: [UserTable.id],
+  }),
+}));
+
+export const appointmentAuditLogRelations = relations(AppointmentAuditLogTable, ({ one }) => ({
+  appointment: one(AppointmentTable, {
+    fields: [AppointmentAuditLogTable.appointmentId],
+    references: [AppointmentTable.id],
+  }),
+  performedByUser: one(UserTable, {
+    fields: [AppointmentAuditLogTable.performedBy],
+    references: [UserTable.id],
+  }),
 }));
 
 //  the relations for the new Pivot Table
@@ -236,6 +304,7 @@ export const userAppointmentRelations = relations(userAppointment, ({ one }) => 
     references: [AppointmentTable.id],
   }),
 }));
+
 
 
 // 7.Appointment-Department table

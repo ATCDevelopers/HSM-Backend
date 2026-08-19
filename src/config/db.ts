@@ -3,38 +3,26 @@ import postgres from 'postgres';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import * as schema from '../drizzle/schema.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const envPath = fs.existsSync(path.resolve(__dirname, '../.env'))
-  ? path.resolve(__dirname, '../.env')
+const envPath = fs.existsSync(path.resolve(process.cwd(), 'src/.env'))
+  ? path.resolve(process.cwd(), 'src/.env')
   : path.resolve(process.cwd(), '.env');
 
 dotenv.config({ path: envPath });
 
-
-
-
-
-const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
-
-
-
-
-if (!DB_HOST || !DB_PORT || !DB_USER || !DB_PASSWORD || !DB_NAME) {
-
-  throw new Error(
-    'Missing required database environment variables (DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)'
-  );
-}
+const host = process.env.DB_HOST || 'localhost';
+const port = Number(process.env.DB_PORT) || 5432;
+const user = process.env.DB_USER || 'postgres';
+const password = process.env.DB_PASSWORD || '';
+const database = process.env.DB_NAME || 'HMS';
 
 const client = postgres({
-  host: DB_HOST,
-  port: Number(DB_PORT),
-  user: DB_USER,
-  password: DB_PASSWORD,
-  database: DB_NAME,
+  host,
+  port,
+  user,
+  password,
+  database,
   ssl: false,
   connect_timeout: 10,
 });
@@ -43,7 +31,5 @@ export const db = drizzle(client, { schema });
 export { client as pgClient };
 
 
-
-//import postgres from 'postgres';
 
 
