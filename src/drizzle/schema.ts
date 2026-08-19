@@ -893,5 +893,30 @@ export const RoomsTable = pgTable("rooms", {
 });
 
 
+//31 . DOCUMENT UPLOAD 
+
+
+export const PatientDocuments = pgTable("patient_documents", {
+  
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  patientId: uuid("patient_id")
+    .notNull()
+    .references(() => PatientTable.id, { onDelete: "cascade" }),
+
+  // (Mfano: "bima_card.jpg" au "vipimo.pdf")
+  documentName: text("document_name").notNull(),
+
+  // (Mfano: "uploads/documents/17188293.jpg")
+  fileUrl: text("file_url").notNull(),
+
+  // (Mfano: "image/jpeg", "image/png", "application/pdf")
+  mimeType: text("mime_type").notNull(),
+
+  // (Mfano: "450.5 KB" au "2.1 MB")
+  fileSize: text("file_size").notNull(),
+
+  ...auditLogs
+});
 
 
