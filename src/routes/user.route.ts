@@ -23,6 +23,11 @@ route.get('/users', authenticateToken, checkAbility('read', 'User'), getUsers);
 route.get('/users/:id', authenticateToken, checkAbility('read', 'User'), getUserByIdController);
 
 //Updating  user by Id from the user table
+
+//Here ucan search here an
+route.get('/users/:id', authenticateToken, checkAbility('read', 'User'), getUserByIdController);
+
+
 route.put('/users/:id', authenticateToken, checkAbility('update', 'User'), updateUserController);
 route.patch('/users/:id', authenticateToken, checkAbility('update', 'User'), updateUserController);
 
