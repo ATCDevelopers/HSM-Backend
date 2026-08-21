@@ -6,9 +6,10 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import userRoutes from './routes/user.route.js';
-import appointmentRoutes from './routes/appointment.js';
+import appointmentRoutes from './routes/appointment.route.js';
 import { initTokenCleanupCron } from './services/token.service.js';
-
+import vitalsRouter from "./routes/vital.route.js"
+import consultationRouter from "./routes/consultation.route.js"; 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = fs.existsSync(path.resolve(__dirname, './.env'))
   ? path.resolve(__dirname, './.env')
@@ -33,6 +34,8 @@ app.use('/api/v1', userRoutes);
 app.use('/api/v1', appointmentRoutes);
 
 app.use("/api/v1", patientRoutes);
+app.use("/api/v1", vitalsRouter);
+app.use("/api/v1", consultationRouter);
 
 // Initialize node-cron token cleanup job
 initTokenCleanupCron();
