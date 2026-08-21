@@ -7,4 +7,3 @@ src/models/migrations
 AGENTS.md
 config/db.ts
 drizzle.config.ts
-uploads/documents

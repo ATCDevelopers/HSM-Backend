@@ -23,7 +23,7 @@ if (!JWT_REFRESH_TOKEN) {
 }
 
 export const generateAccessToken = (payload: any): string => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '15m' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '12h' });
 };
 
 // Keep generateToken as backward-compatible alias

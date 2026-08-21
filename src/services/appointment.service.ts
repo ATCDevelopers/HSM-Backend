@@ -214,11 +214,11 @@ export const sendAppointmentRemindersService = async () => {
 
   const queuedReminders = upcoming.map((item) => ({
     appointmentId: item.appointment.id,
-    patientId: item.patient.id,
-    patientName: `${item.patient.firstName} ${item.patient.lastName}`,
-    patientEmail: item.patient.email,
-    patientPhone: item.patient.phoneNumber,
-    doctorName: item.doctor ? `${item.doctor.firstName} ${item.doctor.lastName}` : 'Assigned Doctor',
+    patientId: item.patient?.id || item.appointment.patientId,
+    patientName: item.patient ? `${item.patient.firstName} ${item.patient.lastName}`.trim() : 'Valued Patient',
+    patientEmail: item.patient?.email || '',
+    patientPhone: item.patient?.phoneNumber || '',
+    doctorName: item.doctor ? `${item.doctor.firstName} ${item.doctor.lastName}`.trim() : 'Assigned Doctor',
     appointmentDate: item.appointment.appointmentDate,
     appointmentTime: item.appointment.appointmentTime,
     status: 'QUEUED_FOR_NOTIFICATION',
@@ -231,5 +231,10 @@ export const sendAppointmentRemindersService = async () => {
 };
 
 export const getAppointmentReportsService = async (filters: AppointmentReportFilters) => {
+  if (filters.endDate) {
+    const end = new Date(filters.endDate);
+    end.setHours(23, 59, 59, 999);
+    filters.endDate = end;
+  }
   return await getAppointmentReportsRepository(filters);
 };

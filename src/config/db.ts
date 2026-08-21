@@ -7,7 +7,7 @@ import * as schema from '../drizzle/schema.js';
 
 const envPath = fs.existsSync(path.resolve(process.cwd(), 'src/.env'))
   ? path.resolve(process.cwd(), 'src/.env')
-  : path.resolve(process.cwd(), '.env');
+  : path.resolve(process.cwd(), '../.env');
 
 dotenv.config({ path: envPath });
 

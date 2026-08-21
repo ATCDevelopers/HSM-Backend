@@ -22,7 +22,7 @@ export const bloodGroupEnum = pgEnum("blood_group", ["O+", "A+", "AB+", "B+", "O
 export const auditLogs = {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
-  deletedAt: timestamp("deleted_at").defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 
   // Adding ": any" to the arrow functions breaks the type inference loop
   createdBy: uuid("created_by").references((): any => UserTable.id),
