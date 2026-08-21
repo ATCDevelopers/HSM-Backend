@@ -24,10 +24,13 @@ export const auditLogs = {
   updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
   deletedAt: timestamp("deleted_at").defaultNow(),
 
+   // COMPLIANCE SOFT DELETE FLAG : under testing   Tillya
+  isDeleted: boolean("is_deleted").default(false).notNull(),
+
   // Adding ": any" to the arrow functions breaks the type inference loop
   createdBy: uuid("created_by").references((): any => UserTable.id),
   updatedBy: uuid("updated_by").references((): any => UserTable.id),
-  deletedBy: uuid("deleted_by").references((): any => UserTable.id),
+ deletedBy: uuid("deleted_by").references((): any => UserTable.id),
 };
 
 

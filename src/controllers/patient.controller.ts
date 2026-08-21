@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 
-import { registerPatient  } from "../services/patient.js";
+import { registerPatient  } from "../services/patient.service.js";
 
 
 export const registerPatientController = async (
@@ -38,7 +38,7 @@ export const registerPatientController = async (
 
 
 
-import * as patientService from "../services/patient.js";
+import * as patientService from "../services/patient.service.js";
 
 // 1. Controller to handle fetching all patients
 export const getPatients = async (req: Request, res: Response): Promise<void> => {
@@ -158,11 +158,11 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
 
 
 
-import { PatientService } from "../services/patient.js";
+import { PatientService } from "../services/patient.service.js";
 
 
 // Import the ready-to-use instantiated instance directly
-import { patientServiceInstance } from "../services/patient.js"; 
+import { patientServiceInstance } from "../services/patient.service.js"; 
 
 export const generateReport = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -218,7 +218,7 @@ export const generateReport = async (req: Request, res: Response): Promise<void>
 
 
 
-import { documentServiceInstance } from "../services/patient.js"; // Hakikisha path ni sahihi
+import { documentServiceInstance } from "../services/patient.service.js"; // Hakikisha path ni sahihi
 import "multer"; 
 /**
  * HTTP Handler: Inapokea picha zilizoskaniwa (JPG/PNG) au mafile (PDF) na kuhifadhi taarifa zake
@@ -317,7 +317,7 @@ export const getPatientDocuments = async (req: Request, res: Response): Promise<
 
 
 // 1. Inapakia instance mpya uliyoirefactor (patientServiceInstance2)
-import { patientServiceInstance2 } from "../services/patient.js";
+import { patientServiceInstance2 } from "../services/patient.service.js";
 
 /**
  * HTTP PUT Handler: Soft deletes/deactivates a single patient profile record
