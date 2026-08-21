@@ -10,34 +10,47 @@ import { softDeletePatient, searchPatients } from "../controllers/patient.contro
 
 import {  Request, Response, NextFunction } from "express";
 import { checkAbility } from "../middleware/authorization.middleware.js";
+import { authenticateToken } from '../middleware/auth.middleware.js';
+
+
+//u can comment if want to test
+router.use(authenticateToken);
 
 
 
+router.post("/patient", 
+  registerPatientController,
+// checkAbility("post", "vital")
+ );
 
 
+ // GET /api/patients
+router.get("/patients",
+   patientController.getPatients, 
+//  checkAbility("get", "patient")
+);
 
-router.post("/patient", registerPatientController);
-
-// GET /api/patients
-router.get("/patients", patientController.getPatients);
 
 
 // GET /api/patients/:id
-router.get("/patient/:id", patientController.getPatientById);
+router.get("/patient/:id", 
+  patientController.getPatientById,
+//  checkAbility("get", "patient")
+);
+
 
 // PUT /api/patients/:id
-router.put("/patient/:id", patientController.updatePatient);
+router.put("/patient/:id", 
+  patientController.updatePatient,
+ // checkAbility("put", "patient")
+);
 
 
 
-
-
-
-/**
- * GET /api/patients/:id/pdf
- * Triggers the PERN + Drizzle + pdfmake engine to stream the patient report
- */
-router.get("/:id/pdf", patientController.generateReport);
+router.get("/:id/pdf", 
+  patientController.generateReport,
+//  checkAbility("get", "patient")
+);
 
 
 
