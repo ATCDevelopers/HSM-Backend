@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 
-import { registerPatient } from "../services/patient.service.js";
+import { registerPatient  } from "../services/patient.service.js";
 
 
 export const registerPatientController = async (
@@ -95,13 +95,13 @@ export const getPatientById = async (req: Request, res: Response): Promise<void>
 /////////////////////////////////////////////////////////////////
 
 
-//Controller for patient Update 
+//Controller for patient Update
 export const updatePatient = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const patientId = String(id);
 
-    // 
+    //
     // { "patientData": { ... }, "addressData": { ... } }
     const { patientData, addressData } = req.body;
 
