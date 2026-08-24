@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 
-import { registerPatient  } from "../services/patient.js";
+import { registerPatient } from "../services/patient.service.js";
 
 
 export const registerPatientController = async (
@@ -38,7 +38,7 @@ export const registerPatientController = async (
 
 
 
-import * as patientService from "../services/patient.js";
+import * as patientService from "../services/patient.service.js";
 
 // 1. Controller to handle fetching all patients
 export const getPatients = async (req: Request, res: Response): Promise<void> => {
@@ -46,7 +46,7 @@ export const getPatients = async (req: Request, res: Response): Promise<void> =>
 
 
     const patients = await patientService.getAllPatientsWithAddress();
-    
+
     res.status(200).json({
       success: true,
       data: patients,
@@ -62,11 +62,11 @@ export const getPatients = async (req: Request, res: Response): Promise<void> =>
 // 2. Controller for Patient fetch by id
 export const getPatientById = async (req: Request, res: Response): Promise<void> => {
   try {
-    
-const id = String(req.params.id);
-const patient = await patientService.getPatientWithAddressById(id);
 
-  
+    const id = String(req.params.id);
+    const patient = await patientService.getPatientWithAddressById(id);
+
+
 
     res.status(200).json({
       success: true,
@@ -75,11 +75,11 @@ const patient = await patientService.getPatientWithAddressById(id);
   } catch (error: any) {
     // If our service threw a "not found" error, return a 404 status
     if (error.message.includes("not found")) {
-       res.status(404).json({
+      res.status(404).json({
         success: false,
         message: error.message,
       });
-       return;
+      return;
     }
 
     res.status(500).json({
@@ -99,21 +99,21 @@ const patient = await patientService.getPatientWithAddressById(id);
 export const updatePatient = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const patientId = String(id); 
+    const patientId = String(id);
 
     // 
     // { "patientData": { ... }, "addressData": { ... } }
     const { patientData, addressData } = req.body;
 
     if (!patientData && !addressData) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Please Information for Update carefully ",
       });
-       return;
+      return;
     }
 
-    
+
     const updatedPatient = await patientService.updatePatientAndAddress(
       patientId,
       patientData || {},
@@ -126,13 +126,13 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
       data: updatedPatient,
     });
   } catch (error: any) {
-    
+
     if (error.message.includes("User not found")) {
-       res.status(404).json({
+      res.status(404).json({
         success: false,
         message: error.message,
       });
-       return;
+      return;
     }
 
     res.status(500).json({
@@ -158,11 +158,11 @@ export const updatePatient = async (req: Request, res: Response): Promise<void> 
 
 
 
-import { PatientService } from "../services/patient.js";
+import { PatientService } from "../services/patient.service.js";
 
 
 // Import the ready-to-use instantiated instance directly
-import { patientServiceInstance } from "../services/patient.js"; 
+import { patientServiceInstance } from "../services/patient.service.js";
 
 export const generateReport = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -170,11 +170,11 @@ export const generateReport = async (req: Request, res: Response): Promise<void>
     const patientId = String(id);
 
     if (!id) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Patient ID parameter is required",
       });
-       return;
+      return;
     }
 
     // Call the method directly on the explicitly imported instance
@@ -192,11 +192,11 @@ export const generateReport = async (req: Request, res: Response): Promise<void>
     console.error("PDF Engine Generation Failure:", error);
 
     if (error.message && error.message.includes("not found")) {
-       res.status(404).json({
+      res.status(404).json({
         success: false,
         message: error.message,
       });
-       return;
+      return;
     }
 
     res.status(500).json({
@@ -218,8 +218,8 @@ export const generateReport = async (req: Request, res: Response): Promise<void>
 
 
 
-import { documentServiceInstance } from "../services/patient.js"; // Hakikisha path ni sahihi
-import "multer"; 
+import { documentServiceInstance } from "../services/patient.service.js"; // Hakikisha path ni sahihi
+import "multer";
 /**
  * HTTP Handler: Inapokea picha zilizoskaniwa (JPG/PNG) au mafile (PDF) na kuhifadhi taarifa zake
  */
@@ -229,20 +229,20 @@ export const uploadDocument = async (req: Request, res: Response): Promise<void>
     const patientId = String(id);
 
     if (!id) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Patient ID parameter is required",
       });
-       return;
+      return;
     }
 
     // Multer inaweka data ya faili ndani ya req.file likishapokelewa salama
     if (!req.file) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Tafadhali weka hati au picha iliyoskaniwa (No file uploaded)",
       });
-       return;
+      return;
     }
 
     // Kubadili ukubwa wa faili kutoka bytes kwenda Kilobytes (KB) ili isomeke vizuri
@@ -280,11 +280,11 @@ export const getPatientDocuments = async (req: Request, res: Response): Promise<
     const patientId = String(id);
 
     if (!id) {
-       res.status(400).json({
+      res.status(400).json({
         success: false,
         message: "Patient ID parameter is required",
       });
-       return;
+      return;
     }
 
     // Tunachukua list ya mafile kutoka kwenye database
@@ -317,7 +317,7 @@ export const getPatientDocuments = async (req: Request, res: Response): Promise<
 
 
 // 1. Inapakia instance mpya uliyoirefactor (patientServiceInstance2)
-import { patientServiceInstance2 } from "../services/patient.js";
+import { patientServiceInstance2 } from "../services/patient.service.js";
 
 /**
  * HTTP PUT Handler: Soft deletes/deactivates a single patient profile record
@@ -326,13 +326,13 @@ export const softDeletePatient = async (req: Request, res: Response): Promise<vo
   try {
     const { id } = req.params;
     const patientId = String(id);
-    
+
     // Simulate reading current logged-in user performing the action from request context
-    const currentUserId = req.body.userId || "00000000-0000-0000-0000-000000000000"; 
+    const currentUserId = req.body.userId || "00000000-0000-0000-0000-000000000000";
 
     if (!id) {
-       res.status(400).json({ success: false, message: "Patient ID parameter is required" });
-       return;
+      res.status(400).json({ success: false, message: "Patient ID parameter is required" });
+      return;
     }
 
     // 2. Inatumia 'patientServiceInstance2' kulemaza mgonjwa
