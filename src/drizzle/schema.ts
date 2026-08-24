@@ -22,7 +22,7 @@ export const bloodGroupEnum = pgEnum("blood_group", ["O+", "A+", "AB+", "B+", "O
 export const auditLogs = {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
-  deletedAt: timestamp("deleted_at").defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 
    // COMPLIANCE SOFT DELETE FLAG : under testing   Tillya
   isDeleted: boolean("is_deleted").default(false).notNull(),
