@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
+<<<<<<< Updated upstream
 import { registerUser, fetchUsers, fetchUserById, modifyUser, removeUser } from '../services/user.js';
+=======
+import { registerUser, fetchUsers, fetchUserById, modifyUser, removeUser } from '../services/user.service.js';
+>>>>>>> Stashed changes
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -176,5 +180,8 @@ export const deleteUserController = async (req: AuthenticatedRequest, res: Respo
   }
 };
 
+<<<<<<< Updated upstream
 
 
+=======
+>>>>>>> Stashed changes
