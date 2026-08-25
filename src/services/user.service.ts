@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { createUser, getUserByEmail, getAllUsers, getUserByIdSanitized, updateUser, deleteUser } from '../repositories/user.repository.js';
-import { generateToken } from '../config/auth.config.js';
+import { generateAccessToken, generateRefreshToken } from '../config/auth.config.js';
+import { saveRefreshToken } from '../repositories/token.repository.js';
 import { UserTable } from '../drizzle/schema.js';
 
 export const registerUser = async (userData: {
@@ -11,6 +12,8 @@ export const registerUser = async (userData: {
   phoneNumber: string;
   password: string;
   role?: typeof UserTable.$inferInsert.role;
+  departmentId?: string;
+  imagePath?: string;
 }) => {
   const existingUser = await getUserByEmail(userData.email);
   if (existingUser) {
@@ -22,16 +25,37 @@ export const registerUser = async (userData: {
   const user = await createUser({
     ...userData,
     secondName: userData.secondName ?? null,
+    departmentId: userData.departmentId ?? null,
+    imagePath: userData.imagePath ?? null,
     password: hashedPassword,
   });
 
-  const token = generateToken({
+  const payload = {
     id: user.id,
     email: user.email,
     role: user.role,
-  });
+  };
 
-  return { user: { id: user.id, email: user.email, role: user.role }, token };
+  const accessToken = generateAccessToken(payload);
+  const refreshToken = generateRefreshToken(payload);
+
+  // Store refresh token in database (tokens table) for automatic login
+  await saveRefreshToken(user.id, refreshToken);
+
+  return {
+    user: {
+      id: user.id,
+      firstName: user.firstName,
+      secondName: user.secondName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      departmentId: user.departmentId,
+      imagePath: user.imagePath,
+    },
+    accessToken,
+    refreshToken,
+  };
 };
 
 export const fetchUsers = async () => {
