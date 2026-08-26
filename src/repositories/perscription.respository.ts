@@ -1,8 +1,4 @@
-/**
- * @file prescriptions.repository.ts
- * @description Repository layer managing core SQL database CRUD data streams for Prescriptions.
- * @author [Your Name Here]
- */
+
 
 import { db } from "../config/db.js"; // Adjust path to your Drizzle db instance
 import { PrescriptionsTable, PatientTable, UserTable, StatusTable } from "../drizzle/schema.js"; // Adjust schema path

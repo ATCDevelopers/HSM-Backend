@@ -10,7 +10,7 @@ router.use(authenticateToken);
 
 router.post(
   "/vitals", 
- // checkAbility("create", "vital"), 
+  checkAbility("create", "Vitals"), 
   vitalsController.create
 );
 
@@ -23,35 +23,35 @@ router.post(
  */
 router.get(
   "/patient/:patientId/audit",
-  checkAbility("read", "EMR"),
+  checkAbility("read", "Vitals"),
   vitalsController.getAuditedVitals
 );
 
 
 router.get(
   "/vitals/search", 
- // checkAbility("read", "vitals"), 
+  checkAbility("read", "Vitals"), 
   vitalsController.searchByPatientName
 );
 
 
 router.get(
   "/vitals/:id", 
- // checkAbility("read", "vitals"), 
+  checkAbility("read", "Vitals"), 
   vitalsController.getById
 );
 
 
 router.get(
   "/patient/:patientId", 
-  //checkAbility("read", "vitals"), 
+  checkAbility("read", "Vitals"), 
   vitalsController.getByPatientId
 );
 
 
 router.patch(
   "/vitals/:id", 
- // checkAbility("update", "vitals"), 
+ checkAbility("update", "Vitals"), 
   vitalsController.update
 );
 
@@ -69,7 +69,7 @@ router.patch(
  */
 router.delete(
   "/:id", 
-//checkAbility("delete", "EMR"), 
+checkAbility("delete", "Vitals"), 
   vitalsController.delete
 );
 
