@@ -1,0 +1,47 @@
+import { Router } from "express";
+import { departmentController } from "../controllers/department.controller.js";
+
+import { authenticateToken } from '../middleware/auth.middleware.js';
+import { checkAbility } from '../middleware/authorization.middleware.js';
+
+const router = Router();
+router.use(authenticateToken);
+
+router.post("/department/",
+      checkAbility("write", "Department"), 
+     departmentController.create
+    );
+
+
+router.get("/department/",
+    checkAbility("read", "Department"),
+
+     departmentController.getAll
+    );
+
+ 
+router.get("/department/:id", 
+    
+    departmentController.getById
+    );
+
+ 
+router.put("/department/:id",
+  
+     departmentController.update
+    );
+
+
+
+router.delete("/department/:id", 
+
+        departmentController.delete
+    );
+
+
+router.get("/department/:id/tree",
+    
+     departmentController.getTree
+    );
+
+export default router;
