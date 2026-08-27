@@ -107,7 +107,7 @@ function Alert({
             aria-live="polite"
         >
             {/* Alert Icon - Visual indicator for alert type using Heroicons */}
-            <div className={`flex-shrink-0 mr-3 ${iconColors[kind]}`}>
+            <div className={`shrink-0 mr-3 ${iconColors[kind]}`}>
                 <Icon className="w-5 h-5" aria-hidden="true"/>
             </div>
 
@@ -117,8 +117,9 @@ function Alert({
             {/* Dismiss Button - Optional close button for user-controlled dismissal */}
             {dismissible && (
                 <button
-                    onClick={onDismiss}
-                    className="flex-shrink-0 ml-3 text-gray-400 hover:text-gray-600 transition-colors"
+                    type="button"
+                    onClick={ () =>onDismiss}
+                    className="shrink-0 ml-3 text-gray-400 hover:text-gray-600 transition-colors"
                     aria-label="Dismiss alert"
                     title="Dismiss alert"
                 >

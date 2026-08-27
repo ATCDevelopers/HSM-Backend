@@ -29,7 +29,7 @@ function Toaster() {
 
     return createPortal(
         <div
-            className="fixed top-4 right-4 z-[9999] flex w-80 max-w-[90vw] flex-col gap-2">
+            className="fixed top-4 right-4 z-9999 flex w-80 max-w-[90vw] flex-col gap-2">
             {toasts.map((t) => (
                 <div key={t.id}
                      className="rounded-lg bg-white shadow-lg ring-1 ring-black/5">

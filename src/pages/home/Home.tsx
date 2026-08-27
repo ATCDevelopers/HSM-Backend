@@ -7,7 +7,7 @@ function Home() {
             <div className="space-y-8">
                 {/* Welcome banner */}
                 <div
-                    className="mx-auto max-w-2xl rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-10 text-center text-white shadow-sm">
+                    className="mx-auto max-w-2xl rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 px-8 py-10 text-center text-white shadow-sm">
                     <h1 className="text-2xl font-bold">Welcome to Your React
                         Application</h1>
                     <p className="mt-2 text-blue-100">A clean, modern starter

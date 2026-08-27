@@ -199,11 +199,11 @@ function Sidebar() {
 
                 {/* User Information Section */}
                 <div
-                    className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700 bg-gray-800 relative z-20 rounded-t-2xl">
+                    className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700 bg-gray-800 z-20 rounded-t-2xl">
                     <div className="flex items-center space-x-3">
                         <div className="relative">
                             <div
-                                className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg ring-2 ring-green-500/20">
+                                className="w-10 h-10 bg-linear-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg ring-2 ring-green-500/20">
                                 <span
                                     className="text-white font-bold text-sm">{initial}</span>
                             </div>
