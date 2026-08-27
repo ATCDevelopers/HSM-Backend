@@ -141,7 +141,9 @@ export default function MedicalRecordsIndex() {
                   <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
                     Prx
                   </th>
-                  <th className="px-4 py-2.5" />
+                  <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody>
