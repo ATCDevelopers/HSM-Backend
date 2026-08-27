@@ -60,6 +60,38 @@ export const modules: Module[] = [
     description: 'Schedule and manage appointments',
     permissions: ['appointments.read', 'appointments.manage'],
     roles: ['SYS_ADMIN', 'MGR', 'DOC', 'NURSE', 'RECEP'],
+    children: [
+      {
+        id: 'appointments-dashboard',
+        name: 'Dashboard',
+        icon: 'Home',
+        path: '/appointments/dashboard',
+      },
+      {
+        id: 'appointments-new',
+        name: 'New Booking',
+        icon: 'Calendar',
+        path: '/appointments/new',
+      },
+      {
+        id: 'appointments-schedule',
+        name: 'Doctor Schedule',
+        icon: 'Calendar',
+        path: '/appointments/schedule',
+      },
+      {
+        id: 'appointments-history',
+        name: 'Patient History',
+        icon: 'FileText',
+        path: '/appointments/history',
+      },
+      {
+        id: 'appointments-status',
+        name: 'Status',
+        icon: 'ChartBar',
+        path: '/appointments/:id/status',
+      },
+    ],
   },
 
   // Medical Records / EMR

@@ -1,4 +1,4 @@
-import {useEffect, useRef} from "react";
+import {useEffect, useRef, useState} from "react";
 import {Link, useLocation, useNavigate} from "react-router-dom";
 import {
     HomeIcon,
@@ -14,6 +14,7 @@ import {
     ChartBarIcon,
     Cog6ToothIcon,
     ArrowRightOnRectangleIcon,
+    ChevronDownIcon,
 } from "@heroicons/react/24/solid";
 import {useAuth} from "../../auth/AuthContext";
 import {modules, getModulesByRole} from "../../config/modules";
@@ -86,6 +87,7 @@ function Sidebar() {
         label: module.name,
         icon: iconMap[module.icon] || <HomeIcon className="w-5 h-5"/>,
         exact: module.path === "/",
+        children: module.children || [],
     }));
 
     /**
@@ -100,6 +102,74 @@ function Sidebar() {
         const menuPath = typeof item === "string" ? item : item.path;
         const exact = typeof item === "object" && item.exact;
         return exact ? location.pathname === menuPath : location.pathname.startsWith(menuPath);
+    };
+
+    const [expandedModules, setExpandedModules] = useState({
+        "/appointments": true,
+    });
+
+    const toggleModule = (path) => {
+        setExpandedModules((prev) => ({
+            ...prev,
+            [path]: !(prev[path] ?? true),
+        }));
+    };
+
+    const renderMenuItem = (item, depth = 0) => {
+        const isSubItem = depth > 0;
+        const hasChildren = item.children && item.children.length > 0;
+        const active = isActive(item);
+        const expanded = expandedModules[item.path] ?? (item.path === "/appointments");
+
+        return (
+            <li key={item.path} ref={active ? activeRef : null}>
+                <div
+                    className={`
+                        flex items-center rounded-l-lg transition-all duration-200
+                        ${
+                            active
+                                ? "bg-green-600 text-white shadow-lg"
+                                : "hover:bg-gray-800 text-gray-300 hover:text-white"
+                        }
+                        ${isSubItem ? "ml-4 mt-1 p-2 text-sm" : "p-3"}
+                    `}
+                >
+                    <Link to={item.path} className="flex flex-1 items-center min-w-0">
+                        <span className={isSubItem ? "text-base" : "text-xl"}>{item.icon}</span>
+                        <span className="ml-3 font-medium truncate">{item.label}</span>
+                    </Link>
+
+                    {hasChildren && (
+                        <button
+                            type="button"
+                            aria-label={expanded ? `Collapse ${item.label}` : `Expand ${item.label}`}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                toggleModule(item.path);
+                            }}
+                            className="ml-2 rounded p-1 text-gray-200 hover:bg-white/10"
+                        >
+                            <ChevronDownIcon
+                                className={`h-4 w-4 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+                            />
+                        </button>
+                    )}
+                </div>
+
+                {hasChildren && expanded && (
+                    <ul className="mt-1 space-y-1 overflow-hidden">
+                        {item.children.map((child) => {
+                            const childItem = {
+                                ...child,
+                                icon: iconMap[child.icon] || <CalendarIcon className="w-4 h-4"/>,
+                                exact: false,
+                            };
+                            return renderMenuItem(childItem, depth + 1);
+                        })}
+                    </ul>
+                )}
+            </li>
+        );
     };
 
     // Scroll the active item into view when navigating, so it is visible even
@@ -123,26 +193,7 @@ function Sidebar() {
                 {/* Navigation Menu */}
                 <nav className="ps-4 flex-1 mt-5 overflow-y-auto relative z-10">
                     <ul className="space-y-2 pt-10 pb-28">
-                        {menuItems.map((item) => (
-                            <li key={item.path}
-                                ref={isActive(item) ? activeRef : null}>
-                                <Link
-                                    to={item.path}
-                                    className={`
-					flex items-center p-3 rounded-l-lg transition-all duration-200
-					${
-                                        isActive(item)
-                                            ? "bg-green-600 text-white shadow-lg"
-                                            : "hover:bg-gray-800 text-gray-300 hover:text-white"
-                                    }
-				`}
-                                >
-                                    <span className="text-xl">{item.icon}</span>
-                                    <span
-                                        className="ml-3 font-medium">{item.label}</span>
-                                </Link>
-                            </li>
-                        ))}
+                        {menuItems.map((item) => renderMenuItem(item, 0))}
                     </ul>
                 </nav>
 

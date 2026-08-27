@@ -1,4 +1,4 @@
-import {MemoryRouter} from "react-router-dom";
+import {BrowserRouter} from "react-router-dom";
 import AppRoutes from "./routes/AppRoutes";
 import {AuthProvider} from "./auth/AuthProvider";
 import {ReferenceDataProvider} from "./contexts/ReferenceDataContext";
@@ -14,13 +14,13 @@ import Toaster from "./components/atoms/ui/Toaster";
 function App() {
     return (
         <>
-            <MemoryRouter initialEntries={["/"]}>
+            <BrowserRouter>
                 <AuthProvider>
                     <ReferenceDataProvider>
                         <AppRoutes/>
                     </ReferenceDataProvider>
                 </AuthProvider>
-            </MemoryRouter>
+            </BrowserRouter>
             <Toaster/>
         </>
     );

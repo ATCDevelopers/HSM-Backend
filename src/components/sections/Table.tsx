@@ -30,13 +30,37 @@ function TableCard({children, container, className, ...props}) {
     );
 }
 
+interface TableColumn {
+    key: string;
+    title?: string;
+    sortable?: boolean;
+    className?: string;
+    render?: (value: any, row: any, index?: number) => React.ReactNode;
+}
+
+interface TableProps {
+    columns?: TableColumn[];
+    data?: any[];
+    onRowClick?: (row: any, index?: number) => void;
+    onSort?: (columnKey: string, direction: "asc" | "desc") => void;
+    sortColumn?: string;
+    sortDirection?: "asc" | "desc";
+    className?: string;
+    variant?: string;
+    size?: "sm" | "md" | "lg";
+    emptyMessage?: string;
+    loading?: boolean;
+    rowClassName?: ((row: any, index: number) => string) | string | null;
+    [key: string]: any;
+}
+
 function Table({
                    columns = [],
                    data = [],
                    onRowClick,
                    onSort,
                    sortColumn,
-                   sortDirection,
+                   sortDirection = "asc",
                    className = "",
                    variant = "default",
                    size = "md", // sm, md, lg
@@ -44,7 +68,7 @@ function Table({
                    loading = false,
                    rowClassName = null,
                    ...props
-               }) {
+               }: TableProps) {
     // Cell padding / font size per density
     const sizeClasses = {
         sm: "text-sm px-4 py-2.5",
@@ -195,7 +219,7 @@ function Table({
 									${theme.row}
 									transition-colors
 									${onRowClick ? "cursor-pointer" : ""}
-									${rowClassName ? rowClassName(row, index) : ""}
+											${typeof rowClassName === "function" ? rowClassName(row, index) : rowClassName || ""}
 								`}
                             onClick={() => onRowClick && onRowClick(row, index)}
                         >

@@ -3,6 +3,15 @@ import {useParams} from "react-router-dom";
 import Alert from "../../components/atoms/ui/Alert";
 import {resourceSchemas} from "../../config/resourceSchemas";
 
+interface ShowProps {
+    resource?: string;
+    resourceName?: string;
+    apiService?: any;
+    columns?: Array<{ key: string; title?: string; render?: (value: any, row: any) => React.ReactNode }>;
+    className?: string;
+    [key: string]: any;
+}
+
 /**
  * CRUD Show Component - A generic component for displaying single resource details
  *
@@ -26,7 +35,7 @@ function Show({
                   columns,
                   className = "",
                   ...props
-              }) {
+              }: ShowProps) {
     const {id} = useParams(); // Get resource ID from URL
 
     // Derive props from resource schema if resource prop is provided

@@ -8,6 +8,30 @@ import Alert from "../../components/atoms/ui/Alert";
 import {extractList, extractMeta} from "../../services/apiResponse";
 import {resourceSchemas} from "../../config/resourceSchemas";
 
+type IndexColumn = {
+    key: string;
+    title?: string;
+    render?: (value: any, row: any) => React.ReactNode;
+};
+
+interface IndexProps {
+    resource?: string;
+    resourceName?: string;
+    apiService?: any;
+    columns?: IndexColumn[];
+    pageSize?: number;
+    enableEdit?: boolean;
+    enableDelete?: boolean;
+    enableRestore?: boolean;
+    enableView?: boolean;
+    getRowActions?: ((row: any) => any[]) | null;
+    rowClassName?: string | null;
+    editRoute?: string;
+    showRoute?: string;
+    className?: string;
+    onRowClick?: (row: any) => void;
+}
+
 function Index({
                    resource,
                    resourceName,
@@ -24,7 +48,7 @@ function Index({
                    showRoute,
                    className = "",
                    onRowClick,
-               }) {
+               }: IndexProps) {
     const navigate = useNavigate();
 
     // Derive props from resource schema if resource prop is provided
@@ -62,6 +86,12 @@ function Index({
     const [selectedItem, setSelectedItem] = useState(null);
 
     const loadData = useCallback(async (page, size) => {
+        if (!derivedApiService) {
+            setData([]);
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             setError("");
@@ -240,6 +270,9 @@ function Index({
                     variant="default"
                     size="sm"
                     onRowClick={derivedOnRowClick}
+                    onSort={undefined}
+                    sortColumn={undefined}
+                    sortDirection={undefined}
                     rowClassName={rowClassName}
                     emptyMessage={`No ${derivedResourceName.toLowerCase()}s found`}
                 />

@@ -72,6 +72,8 @@ const alertIcons = {
     error: ExclamationCircleIcon,
 };
 
+type AlertType = "info" | "success" | "warning" | "error";
+
 function Alert({
                    children,
                    message,
@@ -80,7 +82,15 @@ function Alert({
                    dismissible = false,
                    onDismiss,
                    className = "",
-               }) {
+               }: {
+    children?: React.ReactNode;
+    message?: string;
+    type?: AlertType | string;
+    variant?: AlertType | string;
+    dismissible?: boolean;
+    onDismiss?: () => void;
+    className?: string;
+}) {
     // Accept `variant` as an alias for `type`, and `message` as a fallback for
     // `children`, so all existing call sites (which use a mix of these) render
     // correctly instead of showing an empty coloured box.
