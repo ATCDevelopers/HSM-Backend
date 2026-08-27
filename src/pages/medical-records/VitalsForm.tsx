@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import BaseLayout from "../../components/layouts/BaseLayout";
 import StepWizard from "./StepWizard";
 import type { VitalsFormInput } from "./types";
@@ -122,6 +122,9 @@ export default function VitalsForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const patientId = searchParams.get("patientId") ?? "";
+  const backToHistoryUrl = patientId
+    ? `/medical-records/${patientId}`
+    : "/medical-records";
 
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -171,8 +174,7 @@ export default function VitalsForm() {
   };
 
   const goBackToHistory = () => {
-    const queryString = patientId ? `?patientId=${patientId}` : "";
-    navigate(`/medical-records${queryString}`);
+    navigate(backToHistoryUrl);
   };
 
   const handleNext = async () => {
@@ -211,7 +213,13 @@ export default function VitalsForm() {
     return (
       <BaseLayout resourceName="New Vital">
         <div className="rounded-2xl bg-blue-50 p-6">
-          <div className="mx-auto max-w-3xl rounded-2xl bg-white p-12 text-center shadow-sm">
+          <Link
+            to={backToHistoryUrl}
+            className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+          >
+            ← Back to Medical Records
+          </Link>
+          <div className="mx-auto mt-3 max-w-3xl rounded-2xl bg-white p-12 text-center shadow-sm">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
               <svg
                 className="h-6 w-6 text-green-600"
@@ -240,88 +248,96 @@ export default function VitalsForm() {
   return (
     <BaseLayout resourceName="New Vital">
       <div className="rounded-2xl bg-blue-50 p-6">
-        <StepWizard
-          title="Patient Vitals"
-          subtitle="Enter Patient vitals Step by Step."
-          stepLabels={STEP_LABELS}
-          currentStep={step}
-          onNext={handleNext}
-          onBack={handleBack}
-          submitting={submitting}
+        <Link
+          to={backToHistoryUrl}
+          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
         >
-          {!isReviewStep ? (
-            <>
-              {STEPS[step].heading && (
-                <div className="mb-6">
-                  <h2 className="font-semibold text-gray-900">
-                    {STEPS[step].heading}
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    {STEPS[step].description}
-                  </p>
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-x-8 gap-y-6">
-                {STEPS[step].fields.map(
-                  ({ key, label, unit, step: stepAttr }) => (
-                    <div key={key}>
-                      <label
-                        htmlFor={key}
-                        className="mb-1.5 block text-sm text-gray-700"
-                      >
-                        {label}
-                      </label>
-                      <div className="relative">
-                        <input
-                          id={key}
-                          type="number"
-                          step={stepAttr ?? "1"}
-                          value={values[key] ?? ""}
-                          onChange={(e) => handleChange(key, e.target.value)}
-                          className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/30 ${
-                            errors[key]
-                              ? "border-red-400"
-                              : "border-gray-300 focus:border-blue-500"
-                          }`}
-                        />
-                      </div>
-                      <span className="mt-1 block text-xs text-gray-400">
-                        {unit}
-                      </span>
-                      {errors[key] && (
-                        <p className="mt-1 text-xs text-red-600">
-                          {errors[key]}
-                        </p>
-                      )}
-                    </div>
-                  ),
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <h2 className="mb-1 font-semibold text-gray-900">
-                Review Vitals
-              </h2>
-              <p className="mb-4 text-sm text-gray-500">
-                Check the information before saving the vitals record.
-              </p>
-              <div className="divide-y divide-gray-100 rounded-lg bg-gray-50 px-4">
-                {ALL_FIELDS.map((f) => (
-                  <div
-                    key={f.key}
-                    className="flex justify-between py-2.5 text-sm"
-                  >
-                    <span className="text-gray-500">{f.label}</span>
-                    <span className="font-medium text-gray-900">
-                      {values[f.key]} {f.unit}
-                    </span>
+          ← Back to Medical Records
+        </Link>
+        <div className="mt-3">
+          <StepWizard
+            title="Patient Vitals"
+            subtitle="Enter Patient vitals Step by Step."
+            stepLabels={STEP_LABELS}
+            currentStep={step}
+            onNext={handleNext}
+            onBack={handleBack}
+            submitting={submitting}
+          >
+            {!isReviewStep ? (
+              <>
+                {STEPS[step].heading && (
+                  <div className="mb-6">
+                    <h2 className="font-semibold text-gray-900">
+                      {STEPS[step].heading}
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      {STEPS[step].description}
+                    </p>
                   </div>
-                ))}
-              </div>
-            </>
-          )}
-        </StepWizard>
+                )}
+                <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+                  {STEPS[step].fields.map(
+                    ({ key, label, unit, step: stepAttr }) => (
+                      <div key={key}>
+                        <label
+                          htmlFor={key}
+                          className="mb-1.5 block text-sm text-gray-700"
+                        >
+                          {label}
+                        </label>
+                        <div className="relative">
+                          <input
+                            id={key}
+                            type="number"
+                            step={stepAttr ?? "1"}
+                            value={values[key] ?? ""}
+                            onChange={(e) => handleChange(key, e.target.value)}
+                            className={`w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/30 ${
+                              errors[key]
+                                ? "border-red-400"
+                                : "border-gray-300 focus:border-blue-500"
+                            }`}
+                          />
+                        </div>
+                        <span className="mt-1 block text-xs text-gray-400">
+                          {unit}
+                        </span>
+                        {errors[key] && (
+                          <p className="mt-1 text-xs text-red-600">
+                            {errors[key]}
+                          </p>
+                        )}
+                      </div>
+                    ),
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="mb-1 font-semibold text-gray-900">
+                  Review Vitals
+                </h2>
+                <p className="mb-4 text-sm text-gray-500">
+                  Check the information before saving the vitals record.
+                </p>
+                <div className="divide-y divide-gray-100 rounded-lg bg-gray-50 px-4">
+                  {ALL_FIELDS.map((f) => (
+                    <div
+                      key={f.key}
+                      className="flex justify-between py-2.5 text-sm"
+                    >
+                      <span className="text-gray-500">{f.label}</span>
+                      <span className="font-medium text-gray-900">
+                        {values[f.key]} {f.unit}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </StepWizard>
+        </div>
       </div>
     </BaseLayout>
   );
