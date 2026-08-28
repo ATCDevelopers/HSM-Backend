@@ -30,6 +30,7 @@ export const defineAbilityFor = (user: { id: string; role: string }): AppAbility
   const { can, cannot, build } = new AbilityBuilder<AppAbility>(createMongoAbility);
 
   switch (user.role) {
+        case 'SuperAdmin':
     case 'Admin':
       can('manage', 'all');
       break;

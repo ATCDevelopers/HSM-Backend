@@ -16,12 +16,12 @@ router.use(authenticateToken);
 
 
 // Base collection endpoints
-router.post("/", createLabTest);
-router.get("/", getAllLabTests);
+router.post("/lab-test/", createLabTest);
+router.get("/lab-test/", getAllLabTests);
 
 // Specific resource item endpoints
-router.get("/:id", getLabTestById);
-router.put("/:id", updateLabTest);
-router.delete("/:id", deleteLabTest);
+router.get("/lab-test/:id", getLabTestById);
+router.put("/lab-test/:id", updateLabTest);
+router.delete("/lab-test/:id", deleteLabTest);
 
 export default router;
