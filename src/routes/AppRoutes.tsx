@@ -11,6 +11,16 @@ import Register from "../pages/auth/Register";
 // initial bundle from "the whole app" down to just the login screen.
 const Home = lazy(() => import("../pages/home/Home"));
 const Dashboard = lazy(() => import("../pages/dashboard/Index"));
+const PatientManagement = lazy(
+  () => import("../pages/patients/PatientsManagement"),
+);
+const RegisterPatient = lazy(
+  () => import("../pages/patients/RegisterPatients"),
+);
+const PatientDetails = lazy(
+  () => import("../pages/patients/PatientsDetails"),
+);
+const EditPatient = lazy(() => import("../pages/patients/EditPatients"));
 
 // Standard CRUD pages - reused for all resources
 const Index = lazy(() => import("../pages/crud/Index"));
@@ -58,20 +68,14 @@ function AppRoutes() {
           {/* Dashboard */}
           <Route path="/dashboard" element={<Dashboard />} />
 
-          {/* Patients - CRUD routes */}
-          <Route
-            path="/patients"
-            element={<ResourceIndex resource="patients" />}
-          />
+          {/* Patients */}
+          <Route path="/patients" element={<PatientManagement />} />
+          <Route path="/patients/register" element={<RegisterPatient />} />
+          <Route path="/patients/:id/edit" element={<EditPatient />} />
+          <Route path="/patients/:id" element={<PatientDetails />} />
+
+          {/* Generic CRUD routes */}
           <Route path="/patients/new" element={<Form resource="patients" />} />
-          <Route
-            path="/patients/:id"
-            element={<ResourceShow resource="patients" />}
-          />
-          <Route
-            path="/patients/:id/edit"
-            element={<Form resource="patients" />}
-          />
 
           <Route path="/medical-records" element={<MedicalHistory />} />
           <Route path="/medical-records/vitals/new" element={<VitalsForm />} />
