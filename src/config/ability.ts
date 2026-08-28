@@ -5,8 +5,16 @@ export type Actions = 'manage' | 'create' | 'read' | 'update' | 'delete' | 'requ
 export type SubjectNames =
   | 'User'
   | 'Patient'
+  | 'Department'
   | 'Appointment'
-  | 'EMR'
+  | 'Vitals'
+  | 'Consultation'
+  | 'Medicine'
+
+  | 'Diagnosis'
+  | 'Lab_test'
+  | 'Prescription'
+  | 'Prescription-Items'
   | 'Laboratory'
   | 'Pharmacy'
   | 'Billing'
@@ -28,9 +36,17 @@ export const defineAbilityFor = (user: { id: string; role: string }): AppAbility
 
     case 'ClinicManager':
       can('read', 'User');
+      can('manage', 'Department');
+
       can('read', 'Patient');
       can('manage', 'Appointment');
-      can('read', 'EMR');
+      can('read', 'Consultation');
+      can('read', 'Diagnosis');
+      can('read', 'Lab_test');
+      can('read', 'Prescription');
+      can('read', 'Prescription-Items');
+      can('read', 'Medicine');
+     // can('read', '');
       can('read', 'Laboratory');
       can('read', 'Pharmacy');
       can('read', 'Billing');
@@ -42,7 +58,12 @@ export const defineAbilityFor = (user: { id: string; role: string }): AppAbility
     case 'Doctor':
       can('manage', 'Patient');
       can('manage', 'Appointment');
-      can('manage', 'EMR');
+      can(['read', 'write'], 'Consultation');
+      can('read', 'Diagnosis');
+      can('read', 'Lab_test');
+      can(['read', 'write'], 'Prescription');
+      can(['read', 'write'], 'Prescription-Items');
+     
       can(['read', 'request'], 'Laboratory');
       can(['read', 'prescribe'], 'Pharmacy');
       can('read', 'Report', { userId: user.id });
@@ -51,7 +72,9 @@ export const defineAbilityFor = (user: { id: string; role: string }): AppAbility
     case 'Nurse':
       can(['read', 'update'], 'Patient');
       can('read', 'Appointment');
-      can(['read', 'write'], 'EMR');
+      can('read', 'Prescription');
+      can('read', 'Prescription-Items');
+      can(['read', 'write'], 'Vitals');
       can('read', 'Report', { userId: user.id });
       break;
 
@@ -64,7 +87,8 @@ export const defineAbilityFor = (user: { id: string; role: string }): AppAbility
 
     case 'Pharmacist':
       can('read', 'Patient');
-      can('read', 'EMR');
+      
+
       can('manage', 'Pharmacy');
       can('manage', 'Inventory');
       can('read', 'Report', { userId: user.id });
@@ -72,6 +96,9 @@ export const defineAbilityFor = (user: { id: string; role: string }): AppAbility
 
     case 'LabTechnician':
       can('read', 'Patient');
+
+      can('manage','Diagnosis');
+      can('manage','Lab_test');
       can('manage', 'Laboratory');
       can('read', 'Inventory');
       can('read', 'Report', { userId: user.id });
@@ -94,8 +121,10 @@ export const defineAbilityFor = (user: { id: string; role: string }): AppAbility
     case 'Patient':
       can('read', 'Patient', { userId: user.id });
       can('manage', 'Appointment', { patientId: user.id });
-      can('read', 'EMR', { patientId: user.id });
-      can('read', 'Pharmacy', { patientId: user.id });
+      can('read', 'Prescription', { patientId: user.id });
+      can('read', 'Prescription-Items', { patientId: user.id });
+
+      can('read', 'Medicine', { patientId: user.id });
       can('read', 'Laboratory', { patientId: user.id });
       can('read', 'Billing', { patientId: user.id });
       break;

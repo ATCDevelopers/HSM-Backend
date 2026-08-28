@@ -77,6 +77,7 @@ export const getDoctorSchedulesRepository = async (doctorId: string) => {
     .select()
     .from(DoctorScheduleTable)
     .where(and(eq(DoctorScheduleTable.doctorId, doctorId), isNull(DoctorScheduleTable.deletedAt)));
+    .where(and(eq(DoctorScheduleTable.doctorId, doctorId), sql`(${DoctorScheduleTable.deletedAt} IS NULL OR ${DoctorScheduleTable.deletedBy} IS NULL)`));
 };
 
 export const saveDoctorSchedulesRepository = async (
@@ -90,6 +91,7 @@ export const saveDoctorSchedulesRepository = async (
       .update(DoctorScheduleTable)
       .set({ deletedAt: new Date(), deletedBy: updatedBy || null, updatedBy: updatedBy || null })
       .where(and(eq(DoctorScheduleTable.doctorId, doctorId), isNull(DoctorScheduleTable.deletedAt)));
+      .where(and(eq(DoctorScheduleTable.doctorId, doctorId), sql`(${DoctorScheduleTable.deletedAt} IS NULL OR ${DoctorScheduleTable.deletedBy} IS NULL)`));
 
     if (schedules.length === 0) {
       return [];
@@ -111,6 +113,7 @@ export const saveDoctorSchedulesRepository = async (
 
 export const getDoctorLeavesRepository = async (doctorId: string, startDate?: Date, endDate?: Date) => {
   const conditions = [eq(DoctorLeaveTable.doctorId, doctorId), isNull(DoctorLeaveTable.deletedAt)];
+  const conditions = [eq(DoctorLeaveTable.doctorId, doctorId), sql`(${DoctorLeaveTable.deletedAt} IS NULL OR ${DoctorLeaveTable.deletedBy} IS NULL)`];
 
   if (startDate) {
     conditions.push(gte(DoctorLeaveTable.endDate, startDate));
@@ -161,6 +164,7 @@ export const findAppointmentsByDoctorAndDateRangeRepository = async (
         lte(AppointmentTable.appointmentDate, endDate),
         ne(AppointmentTable.status, 'cancelled'),
         isNull(AppointmentTable.deletedAt)
+        sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`
       )
     );
 };
@@ -170,6 +174,7 @@ export const findAppointmentByIdRepository = async (id: string) => {
     .select()
     .from(AppointmentTable)
     .where(and(eq(AppointmentTable.id, id), isNull(AppointmentTable.deletedAt)));
+    .where(and(eq(AppointmentTable.id, id), sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`));
 
   return appointments.length > 0 ? appointments[0] : null;
 };
@@ -197,6 +202,7 @@ export const createAppointmentWithTransaction = async (
             eq(AppointmentTable.appointmentTime, appointmentTime),
             ne(AppointmentTable.status, 'cancelled'),
             isNull(AppointmentTable.deletedAt)
+            sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`
           )
         );
 
@@ -256,6 +262,7 @@ export const rescheduleAppointmentRepository = async (
       .select()
       .from(AppointmentTable)
       .where(and(eq(AppointmentTable.id, id), isNull(AppointmentTable.deletedAt)));
+      .where(and(eq(AppointmentTable.id, id), sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`));
 
     if (existing.length === 0) {
       throw new Error('NOT_FOUND: Appointment not found');
@@ -283,6 +290,7 @@ export const rescheduleAppointmentRepository = async (
             ne(AppointmentTable.id, id),
             ne(AppointmentTable.status, 'cancelled'),
             isNull(AppointmentTable.deletedAt)
+            sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`
           )
         );
 
@@ -348,6 +356,7 @@ export const cancelAppointmentRepository = async (
       .select()
       .from(AppointmentTable)
       .where(and(eq(AppointmentTable.id, id), isNull(AppointmentTable.deletedAt)));
+      .where(and(eq(AppointmentTable.id, id), sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`));
 
     if (existing.length === 0) {
       throw new Error('NOT_FOUND: Appointment not found');
@@ -393,6 +402,7 @@ export const updateAppointmentStatusRepository = async (
       .select()
       .from(AppointmentTable)
       .where(and(eq(AppointmentTable.id, id), isNull(AppointmentTable.deletedAt)));
+      .where(and(eq(AppointmentTable.id, id), sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`));
 
     if (existing.length === 0) {
       throw new Error('NOT_FOUND: Appointment not found');
@@ -475,12 +485,14 @@ export const findUpcomingAppointmentsRepository = async (withinHours: number = 2
         ne(AppointmentTable.status, 'completed'),
         ne(AppointmentTable.status, 'no_show'),
         isNull(AppointmentTable.deletedAt)
+        sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`
       )
     );
 };
 
 export const getAppointmentReportsRepository = async (filters: AppointmentReportFilters) => {
   const conditions = [isNull(AppointmentTable.deletedAt)];
+  const conditions = [sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`];
 
   if (filters.doctorId) {
     conditions.push(eq(AppointmentTable.doctorId, filters.doctorId));
