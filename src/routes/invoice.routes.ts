@@ -1,0 +1,22 @@
+import { Router } from "express";
+import {
+  createInvoice,
+  getAllInvoices,
+  getInvoiceById,
+  getInvoicesByPatient,
+  updateInvoice,
+  deleteInvoice
+} from "../controllers/invoice.controller.js";
+
+const router = Router();
+
+router.post("/", createInvoice);
+router.get("/", getAllInvoices);
+
+
+router.get("/patient/:patientId", getInvoicesByPatient);
+router.get("/:id", getInvoiceById);
+router.put("/:id", updateInvoice);
+router.delete("/:id", deleteInvoice);
+
+export default router;
