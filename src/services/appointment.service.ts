@@ -15,6 +15,7 @@ import {
   CreateAppointmentInput,
   RescheduleAppointmentInput,
   AppointmentReportFilters,
+  AppointmentStatus,
 } from '../repositories/appointment.repository.js';
 
 export interface ComputedSlot {
@@ -23,13 +24,97 @@ export interface ComputedSlot {
   status: 'available' | 'booked' | 'blocked';
 }
 
+/**
+ * All slot maths runs in UTC. Mixing a UTC date string with a local weekday
+ * shifts every slot by a day for any server not running at UTC+0.
+ */
+const toUtcDateOnly = (value: string | Date): Date => {
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (isNaN(parsed.getTime())) {
+    return parsed;
+  }
+  return new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+};
+
+const toDateKey = (date: Date): string => date.toISOString().slice(0, 10);
+
+const parseTimeToMinutes = (time: string): number => {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(time ?? '').trim());
+  if (!match) {
+    throw new Error(`INVALID_SLOT: Invalid time '${time}'. Expected HH:mm in 24-hour form.`);
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) {
+    throw new Error(`INVALID_SLOT: Invalid time '${time}'. Expected HH:mm in 24-hour form.`);
+  }
+
+  return hours * 60 + minutes;
+};
+
+/** Pads to HH:mm so "9:00" and "09:00" cannot occupy the same slot as two distinct rows. */
+const normalizeTime = (time: string): string => {
+  const total = parseTimeToMinutes(time);
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+};
+
+/**
+ * Rejects a slot the availability endpoint would report as `blocked`: a leave day,
+ * a non-working weekday, a time outside working hours, or a time that does not sit
+ * on the doctor's slot grid. Booking and rescheduling both go through this so the
+ * two endpoints can no longer disagree.
+ */
+const assertSlotIsOpen = async (
+  doctorId: string,
+  appointmentDate: Date,
+  appointmentTime: string
+): Promise<void> => {
+  const dayStart = toUtcDateOnly(appointmentDate);
+
+  const [schedules, leaves] = await Promise.all([
+    getDoctorSchedulesRepository(doctorId),
+    getDoctorLeavesRepository(doctorId, dayStart, dayStart),
+  ]);
+
+  if (leaves.length > 0) {
+    throw new Error(`DOCTOR_ON_LEAVE: The doctor is on approved leave on ${toDateKey(dayStart)}.`);
+  }
+
+  const daySchedule = schedules.find((s) => s.dayOfWeek === dayStart.getUTCDay());
+  if (!daySchedule || !daySchedule.isWorkingDay) {
+    throw new Error(
+      `OUTSIDE_SCHEDULE: The doctor has no working hours configured for ${toDateKey(dayStart)}.`
+    );
+  }
+
+  const slotDuration = daySchedule.slotDurationMinutes || 30;
+  const requested = parseTimeToMinutes(appointmentTime);
+  const openFrom = parseTimeToMinutes(daySchedule.startTime);
+  const openUntil = parseTimeToMinutes(daySchedule.endTime);
+
+  if (requested < openFrom || requested + slotDuration > openUntil) {
+    throw new Error(
+      `INVALID_SLOT: ${appointmentTime} is outside the doctor's working hours ` +
+        `(${daySchedule.startTime}-${daySchedule.endTime}).`
+    );
+  }
+
+  if ((requested - openFrom) % slotDuration !== 0) {
+    throw new Error(
+      `INVALID_SLOT: ${appointmentTime} is not a slot start. Slots begin every ` +
+        `${slotDuration} minutes from ${daySchedule.startTime}.`
+    );
+  }
+};
+
 export const getDoctorAvailabilityService = async (
   doctorId: string,
   startDateStr: string,
   endDateStr: string
 ): Promise<{ doctorId: string; startDate: string; endDate: string; slots: ComputedSlot[] }> => {
-  const start = new Date(startDateStr);
-  const end = new Date(endDateStr);
+  const start = toUtcDateOnly(startDateStr);
+  const end = toUtcDateOnly(endDateStr);
 
   if (isNaN(start.getTime()) || isNaN(end.getTime())) {
     throw new Error('INVALID_DATE: Invalid start or end date format.');
@@ -52,27 +137,25 @@ export const getDoctorAvailabilityService = async (
   // Map existing booked appointments by "YYYY-MM-DD_HH:mm"
   const bookedSet = new Set<string>();
   existingAppointments.forEach((app) => {
-    const dateStr = app.appointmentDate.toISOString().split('T')[0];
-    bookedSet.add(`${dateStr}_${app.appointmentTime}`);
+    const dateStr = toDateKey(toUtcDateOnly(app.appointmentDate));
+    bookedSet.add(`${dateStr}_${normalizeTime(app.appointmentTime)}`);
   });
+
+  const leaveRanges = leaves.map((leave) => ({
+    from: toUtcDateOnly(leave.startDate),
+    to: toUtcDateOnly(leave.endDate),
+  }));
 
   const slots: ComputedSlot[] = [];
   const current = new Date(start);
 
   while (current <= end) {
-    const dateStr = current.toISOString().split('T')[0];
-    const dayOfWeek = current.getDay(); // 0 = Sun, 1 = Mon ...
+    const dateStr = toDateKey(current);
+    const dayOfWeek = current.getUTCDay(); // 0 = Sun, 1 = Mon ...
     const daySchedule = scheduleMap.get(dayOfWeek);
 
-    // Check if the current date falls within any doctor leave
-    const isLeave = leaves.some((leave) => {
-      const leaveStart = new Date(leave.startDate);
-      const leaveEnd = new Date(leave.endDate);
-      const currentDateOnly = new Date(dateStr);
-      const leaveStartOnly = new Date(leaveStart.toISOString().split('T')[0]);
-      const leaveEndOnly = new Date(leaveEnd.toISOString().split('T')[0]);
-      return currentDateOnly >= leaveStartOnly && currentDateOnly <= leaveEndOnly;
-    });
+    // Blocked when the day falls inside any approved leave period
+    const isLeave = leaveRanges.some((range) => current >= range.from && current <= range.to);
 
     if (isLeave || !daySchedule || !daySchedule.isWorkingDay) {
       // Entire day is blocked / off
@@ -83,12 +166,9 @@ export const getDoctorAvailabilityService = async (
       });
     } else {
       // Compute time slots based on working hours and slot duration
-      const [startHour, startMin] = daySchedule.startTime.split(':').map(Number);
-      const [endHour, endMin] = daySchedule.endTime.split(':').map(Number);
       const slotDuration = daySchedule.slotDurationMinutes || 30;
-
-      let slotStartMinutes = startHour * 60 + startMin;
-      const slotEndMinutes = endHour * 60 + endMin;
+      let slotStartMinutes = parseTimeToMinutes(daySchedule.startTime);
+      const slotEndMinutes = parseTimeToMinutes(daySchedule.endTime);
 
       while (slotStartMinutes + slotDuration <= slotEndMinutes) {
         const hh = String(Math.floor(slotStartMinutes / 60)).padStart(2, '0');
@@ -107,13 +187,13 @@ export const getDoctorAvailabilityService = async (
       }
     }
 
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
   return {
     doctorId,
-    startDate: startDateStr,
-    endDate: endDateStr,
+    startDate: toDateKey(start),
+    endDate: toDateKey(end),
     slots,
   };
 };
@@ -150,15 +230,23 @@ export const setDoctorSchedulesService = async (
 };
 
 export const bookAppointmentService = async (input: CreateAppointmentInput, userId?: string) => {
-  const appointmentDate = new Date(input.appointmentDate);
+  const appointmentDate = toUtcDateOnly(input.appointmentDate);
   if (isNaN(appointmentDate.getTime())) {
     throw new Error('INVALID_DATE: Invalid appointmentDate.');
+  }
+
+  const appointmentTime = normalizeTime(input.appointmentTime);
+
+  // AM-004/AM-009: a slot the availability endpoint reports as blocked must not be bookable.
+  if (input.doctorId) {
+    await assertSlotIsOpen(input.doctorId, appointmentDate, appointmentTime);
   }
 
   return await createAppointmentWithTransaction(
     {
       ...input,
       appointmentDate,
+      appointmentTime,
     },
     userId
   );
@@ -169,9 +257,15 @@ export const rescheduleAppointmentService = async (
   input: RescheduleAppointmentInput,
   userId?: string
 ) => {
-  const appointmentDate = new Date(input.appointmentDate);
+  const appointmentDate = toUtcDateOnly(input.appointmentDate);
   if (isNaN(appointmentDate.getTime())) {
     throw new Error('INVALID_DATE: Invalid appointmentDate.');
+  }
+
+  const appointmentTime = normalizeTime(input.appointmentTime);
+
+  if (input.doctorId) {
+    await assertSlotIsOpen(input.doctorId, appointmentDate, appointmentTime);
   }
 
   return await rescheduleAppointmentRepository(
@@ -179,6 +273,7 @@ export const rescheduleAppointmentService = async (
     {
       ...input,
       appointmentDate,
+      appointmentTime,
     },
     userId
   );
@@ -198,15 +293,35 @@ export const cancelAppointmentService = async (
 
 export const updateAppointmentStatusService = async (
   appointmentId: string,
-  status: 'scheduled' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'no_show',
-  userId?: string
+  status: AppointmentStatus,
+  userId?: string,
+  reason?: string
 ) => {
-  const validStatuses = ['scheduled', 'confirmed', 'checked_in', 'completed', 'cancelled', 'no_show'];
+  const validStatuses: AppointmentStatus[] = [
+    'scheduled',
+    'confirmed',
+    'checked_in',
+    'completed',
+    'cancelled',
+    'no_show',
+  ];
+
   if (!validStatuses.includes(status)) {
     throw new Error(`INVALID_STATUS: Allowed statuses are ${validStatuses.join(', ')}`);
   }
 
-  return await updateAppointmentStatusRepository(appointmentId, status, userId);
+  // AM-003: cancelling through the status endpoint carries the same reason mandate
+  // as the dedicated cancel endpoint, so the audit trail can never lose it.
+  if (status === 'cancelled' && (!reason || reason.trim() === '')) {
+    throw new Error('REASON_REQUIRED: Cancelling an appointment requires a non-empty reason.');
+  }
+
+  return await updateAppointmentStatusRepository(
+    appointmentId,
+    status,
+    userId,
+    reason ? reason.trim() : undefined
+  );
 };
 
 export const sendAppointmentRemindersService = async () => {
@@ -231,6 +346,33 @@ export const sendAppointmentRemindersService = async () => {
 };
 
 export const getAppointmentReportsService = async (filters: AppointmentReportFilters) => {
+  // Build a copy: mutating the caller's filter object leaked the widened endDate back
+  // into the controller's request-scoped state.
+  const scoped: AppointmentReportFilters = { ...filters };
+
+  if (scoped.startDate) {
+    const start = toUtcDateOnly(scoped.startDate);
+    if (isNaN(start.getTime())) {
+      throw new Error('INVALID_DATE: Invalid startDate filter.');
+    }
+    scoped.startDate = start;
+  }
+
+  if (scoped.endDate) {
+    const end = toUtcDateOnly(scoped.endDate);
+    if (isNaN(end.getTime())) {
+      throw new Error('INVALID_DATE: Invalid endDate filter.');
+    }
+    // Widen to end-of-day in UTC so the range stays inclusive of the final day.
+    end.setUTCHours(23, 59, 59, 999);
+    scoped.endDate = end;
+  }
+
+  if (scoped.startDate && scoped.endDate && scoped.startDate > scoped.endDate) {
+    throw new Error('INVALID_DATE_RANGE: startDate cannot be after endDate.');
+  }
+
+  return await getAppointmentReportsRepository(scoped);
   if (filters.endDate) {
     const end = new Date(filters.endDate);
     end.setHours(23, 59, 59, 999);

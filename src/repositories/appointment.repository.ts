@@ -1,6 +1,38 @@
 import { db } from '../config/db.js';
 import { AppointmentTable, DoctorScheduleTable, DoctorLeaveTable, AppointmentAuditLogTable, userAppointment, PatientTable, UserTable } from '../drizzle/schema.js';
-import { eq, and, gte, lte, ne, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, ne, isNull, sql } from 'drizzle-orm';
+
+export type AppointmentStatus =
+  | 'scheduled'
+  | 'confirmed'
+  | 'checked_in'
+  | 'completed'
+  | 'cancelled'
+  | 'no_show';
+
+/**
+ * Allowed forward moves through the appointment lifecycle (AM-011).
+ * `completed`, `cancelled` and `no_show` are terminal: nothing may leave them.
+ */
+export const APPOINTMENT_STATUS_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
+  scheduled: ['confirmed', 'checked_in', 'cancelled', 'no_show'],
+  confirmed: ['checked_in', 'cancelled', 'no_show'],
+  checked_in: ['completed', 'cancelled'],
+  completed: [],
+  cancelled: [],
+  no_show: [],
+};
+
+/**
+ * Stable lock identity for one doctor's slot. Used with a transaction-scoped
+ * advisory lock so two concurrent bookings cannot both pass the conflict check.
+ */
+const slotLockKey = (doctorId: string, date: Date, time: string): string =>
+  `appointment-slot:${doctorId}:${date.toISOString().slice(0, 10)}:${time}`;
+
+const lockDoctorSlot = async (tx: any, doctorId: string, date: Date, time: string): Promise<void> => {
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${slotLockKey(doctorId, date, time)}, 0))`);
+};
 
 export interface DoctorScheduleInput {
   dayOfWeek: number;
@@ -37,13 +69,14 @@ export interface AppointmentReportFilters {
   patientId?: string;
   startDate?: Date;
   endDate?: Date;
-  status?: 'scheduled' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'no_show';
+  status?: AppointmentStatus;
 }
 
 export const getDoctorSchedulesRepository = async (doctorId: string) => {
   return await db
     .select()
     .from(DoctorScheduleTable)
+    .where(and(eq(DoctorScheduleTable.doctorId, doctorId), isNull(DoctorScheduleTable.deletedAt)));
     .where(and(eq(DoctorScheduleTable.doctorId, doctorId), sql`(${DoctorScheduleTable.deletedAt} IS NULL OR ${DoctorScheduleTable.deletedBy} IS NULL)`));
 };
 
@@ -57,6 +90,7 @@ export const saveDoctorSchedulesRepository = async (
     await tx
       .update(DoctorScheduleTable)
       .set({ deletedAt: new Date(), deletedBy: updatedBy || null, updatedBy: updatedBy || null })
+      .where(and(eq(DoctorScheduleTable.doctorId, doctorId), isNull(DoctorScheduleTable.deletedAt)));
       .where(and(eq(DoctorScheduleTable.doctorId, doctorId), sql`(${DoctorScheduleTable.deletedAt} IS NULL OR ${DoctorScheduleTable.deletedBy} IS NULL)`));
 
     if (schedules.length === 0) {
@@ -78,6 +112,7 @@ export const saveDoctorSchedulesRepository = async (
 };
 
 export const getDoctorLeavesRepository = async (doctorId: string, startDate?: Date, endDate?: Date) => {
+  const conditions = [eq(DoctorLeaveTable.doctorId, doctorId), isNull(DoctorLeaveTable.deletedAt)];
   const conditions = [eq(DoctorLeaveTable.doctorId, doctorId), sql`(${DoctorLeaveTable.deletedAt} IS NULL OR ${DoctorLeaveTable.deletedBy} IS NULL)`];
 
   if (startDate) {
@@ -128,6 +163,7 @@ export const findAppointmentsByDoctorAndDateRangeRepository = async (
         gte(AppointmentTable.appointmentDate, startDate),
         lte(AppointmentTable.appointmentDate, endDate),
         ne(AppointmentTable.status, 'cancelled'),
+        isNull(AppointmentTable.deletedAt)
         sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`
       )
     );
@@ -137,6 +173,7 @@ export const findAppointmentByIdRepository = async (id: string) => {
   const appointments = await db
     .select()
     .from(AppointmentTable)
+    .where(and(eq(AppointmentTable.id, id), isNull(AppointmentTable.deletedAt)));
     .where(and(eq(AppointmentTable.id, id), sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`));
 
   return appointments.length > 0 ? appointments[0] : null;
@@ -149,8 +186,12 @@ export const createAppointmentWithTransaction = async (
   return await db.transaction(async (tx) => {
     const { patientId, doctorId, appointmentType, priority, reason, appointmentDate, appointmentTime } = input;
 
-    // AM-006: Prevent concurrent double-booking for the doctor at exact date and time
+    // AM-006: Prevent concurrent double-booking for the doctor at exact date and time.
+    // The advisory lock serialises rival transactions on this slot; without it two
+    // concurrent bookings both read an empty conflict set and both insert.
     if (doctorId) {
+      await lockDoctorSlot(tx, doctorId, appointmentDate, appointmentTime);
+
       const existing = await tx
         .select()
         .from(AppointmentTable)
@@ -160,6 +201,7 @@ export const createAppointmentWithTransaction = async (
             eq(AppointmentTable.appointmentDate, appointmentDate),
             eq(AppointmentTable.appointmentTime, appointmentTime),
             ne(AppointmentTable.status, 'cancelled'),
+            isNull(AppointmentTable.deletedAt)
             sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`
           )
         );
@@ -219,6 +261,7 @@ export const rescheduleAppointmentRepository = async (
     const existing = await tx
       .select()
       .from(AppointmentTable)
+      .where(and(eq(AppointmentTable.id, id), isNull(AppointmentTable.deletedAt)));
       .where(and(eq(AppointmentTable.id, id), sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`));
 
     if (existing.length === 0) {
@@ -234,6 +277,8 @@ export const rescheduleAppointmentRepository = async (
 
     // Check collision for target doctor and new date/time
     if (targetDoctorId) {
+      await lockDoctorSlot(tx, targetDoctorId, input.appointmentDate, input.appointmentTime);
+
       const conflicts = await tx
         .select()
         .from(AppointmentTable)
@@ -244,6 +289,7 @@ export const rescheduleAppointmentRepository = async (
             eq(AppointmentTable.appointmentTime, input.appointmentTime),
             ne(AppointmentTable.id, id),
             ne(AppointmentTable.status, 'cancelled'),
+            isNull(AppointmentTable.deletedAt)
             sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`
           )
         );
@@ -309,6 +355,7 @@ export const cancelAppointmentRepository = async (
     const existing = await tx
       .select()
       .from(AppointmentTable)
+      .where(and(eq(AppointmentTable.id, id), isNull(AppointmentTable.deletedAt)));
       .where(and(eq(AppointmentTable.id, id), sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`));
 
     if (existing.length === 0) {
@@ -346,13 +393,15 @@ export const cancelAppointmentRepository = async (
 
 export const updateAppointmentStatusRepository = async (
   id: string,
-  newStatus: 'scheduled' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'no_show',
-  updatedBy?: string
+  newStatus: AppointmentStatus,
+  updatedBy?: string,
+  reason?: string
 ) => {
   return await db.transaction(async (tx) => {
     const existing = await tx
       .select()
       .from(AppointmentTable)
+      .where(and(eq(AppointmentTable.id, id), isNull(AppointmentTable.deletedAt)));
       .where(and(eq(AppointmentTable.id, id), sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`));
 
     if (existing.length === 0) {
@@ -360,6 +409,21 @@ export const updateAppointmentStatusRepository = async (
     }
 
     const currentAppointment = existing[0];
+    const currentStatus = currentAppointment.status as AppointmentStatus;
+
+    // AM-011: reject moves the lifecycle does not allow (e.g. completed -> scheduled).
+    // Enforced inside the transaction so a concurrent update cannot slip past it.
+    if (currentStatus === newStatus) {
+      throw new Error(`INVALID_TRANSITION: Appointment is already '${currentStatus}'`);
+    }
+
+    if (!APPOINTMENT_STATUS_TRANSITIONS[currentStatus].includes(newStatus)) {
+      const allowed = APPOINTMENT_STATUS_TRANSITIONS[currentStatus];
+      throw new Error(
+        `INVALID_TRANSITION: Cannot move from '${currentStatus}' to '${newStatus}'. ` +
+          (allowed.length > 0 ? `Allowed next states: ${allowed.join(', ')}` : `'${currentStatus}' is a terminal state`)
+      );
+    }
 
     const [updatedAppointment] = await tx
       .update(AppointmentTable)
@@ -371,12 +435,14 @@ export const updateAppointmentStatusRepository = async (
       .where(eq(AppointmentTable.id, id))
       .returning();
 
-    // Insert audit record
+    // Insert audit record. Cancellations keep the CANCELLED action and their mandated
+    // reason (AM-003) even when they arrive through the status endpoint.
     await tx.insert(AppointmentAuditLogTable).values({
       appointmentId: id,
-      action: 'STATUS_UPDATED',
-      previousState: currentAppointment.status,
+      action: newStatus === 'cancelled' ? 'CANCELLED' : 'STATUS_UPDATED',
+      previousState: currentStatus,
       newState: newStatus,
+      reason: reason || null,
       performedBy: updatedBy || null,
     });
 
@@ -387,6 +453,20 @@ export const updateAppointmentStatusRepository = async (
 export const findUpcomingAppointmentsRepository = async (withinHours: number = 24) => {
   const now = new Date();
   const future = new Date(now.getTime() + withinHours * 60 * 60 * 1000);
+
+  // AM-005: the reminder window must compare against the real appointment instant.
+  // appointment_date only carries the day, so the HH:mm text column is folded back in;
+  // the CASE guards the interval cast so a malformed legacy time cannot abort the query.
+  // `AT TIME ZONE 'UTC'` reads the naive timestamp as UTC — the same basis the service
+  // stores it on — so the comparison does not drift with the session time zone.
+  const appointmentInstant = sql`((
+    date_trunc('day', ${AppointmentTable.appointmentDate})
+    + CASE
+        WHEN ${AppointmentTable.appointmentTime} ~ '^[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?$'
+          THEN ${AppointmentTable.appointmentTime}::interval
+        ELSE INTERVAL '0'
+      END
+  ) AT TIME ZONE 'UTC')`;
 
   return await db
     .select({
@@ -399,16 +479,19 @@ export const findUpcomingAppointmentsRepository = async (withinHours: number = 2
     .leftJoin(UserTable, eq(AppointmentTable.doctorId, UserTable.id))
     .where(
       and(
-        gte(AppointmentTable.appointmentDate, now),
-        lte(AppointmentTable.appointmentDate, future),
+        sql`${appointmentInstant} >= ${now}`,
+        sql`${appointmentInstant} <= ${future}`,
         ne(AppointmentTable.status, 'cancelled'),
         ne(AppointmentTable.status, 'completed'),
+        ne(AppointmentTable.status, 'no_show'),
+        isNull(AppointmentTable.deletedAt)
         sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`
       )
     );
 };
 
 export const getAppointmentReportsRepository = async (filters: AppointmentReportFilters) => {
+  const conditions = [isNull(AppointmentTable.deletedAt)];
   const conditions = [sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`];
 
   if (filters.doctorId) {

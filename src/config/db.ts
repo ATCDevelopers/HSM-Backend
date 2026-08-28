@@ -5,10 +5,18 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import * as schema from '../drizzle/schema.js';
 
+const envPath = fs.existsSync(path.resolve(process.cwd(), 'src/.env'))
+  ? path.resolve(process.cwd(), 'src/.env')
+  : path.resolve(process.cwd(), '../.env');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config();
 
 
+const host = process.env.DB_HOST || 'localhost';
+const port = Number(process.env.DB_PORT) || 5432;
+const user = process.env.DB_USER || 'postgres';
+const password = process.env.DB_PASSWORD || '';
+const database = process.env.DB_NAME || 'HMS';
 
 
 const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;

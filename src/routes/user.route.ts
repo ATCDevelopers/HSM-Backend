@@ -6,13 +6,13 @@ import { adminOnly, checkAbility } from "../middleware/authorization.middleware.
 
 const route = express.Router();
 
-//Admin registration
+//Public user registration
 route.post('/auth/register', register);
 
 //Form for user (roles) administaration
 route.post('/auth/register-worker', authenticateToken, adminOnly, registerWorker);
 
-// Refresh Access Token using Refresh Token
+// Refresh Access Token and Refresh Token generating endpoints
 route.post('/auth/refresh-token', handleRefreshToken);
 route.post('/auth/refresh', handleRefreshToken);
 
@@ -24,7 +24,6 @@ route.get('/users/:id', authenticateToken, checkAbility('read', 'User'), getUser
 
 //Updating  user by Id from the user table
 
-//Here ucan search here an
 route.get('/users/:id', authenticateToken, checkAbility('read', 'User'), getUserByIdController);
 
 
