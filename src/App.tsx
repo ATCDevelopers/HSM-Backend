@@ -1,7 +1,10 @@
+ feature/appointment
 import {BrowserRouter} from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
+ develop
 import AppRoutes from "./routes/AppRoutes";
-import {AuthProvider} from "./auth/AuthProvider";
-import {ReferenceDataProvider} from "./contexts/ReferenceDataContext";
+import { AuthProvider } from "./auth/AuthProvider";
+import { ReferenceDataProvider } from "./contexts/ReferenceDataContext";
 import Toaster from "./components/atoms/ui/Toaster";
 
 /**
@@ -12,6 +15,7 @@ import Toaster from "./components/atoms/ui/Toaster";
  *   hooks read their slice from it. This is optional and can be removed if not needed.
  */
 function App() {
+ feature/appointment
     return (
         <>
             <BrowserRouter>
@@ -24,6 +28,20 @@ function App() {
             <Toaster/>
         </>
     );
+
+  return (
+    <>
+      <BrowserRouter>
+        <AuthProvider>
+          <ReferenceDataProvider>
+            <AppRoutes />
+          </ReferenceDataProvider>
+        </AuthProvider>
+      </BrowserRouter>
+      <Toaster />
+    </>
+  );
+develop
 }
 
 export default App;
