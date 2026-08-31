@@ -1,0 +1,43 @@
+name: Express TypeScript Backend CI/CD
+
+on:
+  push:
+    branches: [ develop ] # Triggers the pipeline when pushing to main
+  pull_request:
+    branches: [ develop ] # Runs checks to verify PR code builds before merging
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Change to matches your production environment
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # Runs TypeScript compiler check. Make sure you have "build": "tsc" in package.json
+      - name: Compile TypeScript & Build
+        run: npm run build
+
+      # Optional: Add testing step here if you use Jest, Mocha, or Vitest
+      # - name: Run Tests
+      #   run: npm test
+
+  deploy:
+    needs: build-and-verify
+    # Only deploy on direct pushes to main, not on pull requests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Hosting Provider Deployment
+        # REPLACE THIS STEP with your host's integration action (e.g., Render, AWS, Heroku)
+        run: echo "Deploying compiled JavaScript app to server..."
