@@ -104,6 +104,21 @@ import {resourceSchemas} from "../../config/resourceSchemas";
  *   onSubmit={handleSubmit}
  * />
  */
+interface FormProps {
+    resource?: string;
+    fields?: any[];
+    initialValues?: Record<string, any>;
+    onSubmit?: (formData: Record<string, any>) => void | Promise<void>;
+    onCancel?: () => void;
+    loading?: boolean;
+    className?: string;
+    submitText?: string;
+    cancelText?: string;
+    showSubmit?: boolean;
+    showCancel?: boolean;
+    [key: string]: any;
+}
+
 function Form({
                   resource,
                   fields,
@@ -117,7 +132,7 @@ function Form({
                   showSubmit = true,
                   showCancel = true,
                   ...props
-              }: any) {
+              }: FormProps) {
     const {id} = useParams();
     const navigate = useNavigate();
     

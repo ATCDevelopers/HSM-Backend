@@ -123,7 +123,7 @@ function Dropdown({
                             left: coords.left,
                             width: MENU_WIDTH
                         }}
-                        className={`z-[9998] bg-white border border-gray-200 rounded-md shadow-lg ${dropdownClassName}`}
+                        className={`z-9998 bg-white border border-gray-200 rounded-md shadow-lg ${dropdownClassName}`}
                         role="menu"
                     >
                         <div className="py-1">
