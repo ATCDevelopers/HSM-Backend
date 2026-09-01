@@ -1,17 +1,7 @@
-/**
- * @file prescriptions.controller.ts
- * @description Controller handling Express HTTP payloads for prescription CRUD operations.
- * @author [Your Name Here]
- */
-
 import { Request, Response, NextFunction } from "express";
 import { prescriptionsService } from "../services/perscription.service.js";
 
 export const prescriptionsController = {
-  /**
-   * POST /api/prescriptions
-   * Create a brand new prescription record
-   */
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const record = await prescriptionsService.recordPrescription(req.body);
@@ -25,10 +15,7 @@ export const prescriptionsController = {
     }
   },
 
-  /**
-   * GET /api/prescriptions/search?name=Jane daniel
-   * Search prescriptions using a patient's full name query parameter
-   */
+  
   async searchByPatientName(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const nameQuery = req.query.name;
@@ -52,10 +39,7 @@ export const prescriptionsController = {
     }
   },
 
-  /**
-   * GET /api/prescriptions/:id
-   * Get an isolated prescription profile by its unique document UUID
-   */
+ 
   async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
@@ -75,10 +59,7 @@ export const prescriptionsController = {
     }
   },
 
-  /**
-   * GET /api/prescriptions/patient/:patientId
-   * Fetch all historical prescriptions logged for a targeted patient UUID
-   */
+ 
   async getByPatientId(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { patientId } = req.params;
@@ -98,10 +79,7 @@ export const prescriptionsController = {
     }
   },
 
-  /**
-   * PATCH /api/prescriptions/:id
-   * Update selective properties (like notes or status fields) on an existing record
-   */
+  
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
@@ -122,10 +100,7 @@ export const prescriptionsController = {
     }
   },
 
-  /**
-   * DELETE /api/prescriptions/:id
-   * Remove a prescription document entirely from the system cluster
-   */
+
   async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params;
