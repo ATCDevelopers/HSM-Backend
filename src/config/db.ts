@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as schema from '../drizzle/schema.js';
 
@@ -43,9 +44,3 @@ const client = postgres({
 
 export const db = drizzle(client, { schema });
 export { client as pgClient };
-
-
-
-//import postgres from 'postgres';
-
-

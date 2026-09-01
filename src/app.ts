@@ -14,7 +14,6 @@ import departmentRouter from "./routes/department.route.js";
 import labTestRouter from "./routes/labTest.route.js";
 import medicineRouter from "./routes/medicine.route.js"; 
 import prescriptionItemRouter from "./routes/prescriptionItem.route.js";
-import authRouter from "./routes/auth.route.js"; 
 import superAdminRouter from "./routes/superAdmin.route.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const envPath = fs.existsSync(path.resolve(__dirname, './.env'))
@@ -40,7 +39,6 @@ app.use(cors(corsOptions));
 
 
 app.use("/api/v1/", superAdminRouter);
-app.use("/api/v1/auth", authRouter); 
 app.use('/api/v1', userRoutes);
 app.use('/api/v1', appointmentRoutes);
 app.use("/api/v1", patientRoutes);
