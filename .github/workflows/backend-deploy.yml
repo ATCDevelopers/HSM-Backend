@@ -1,0 +1,24 @@
+name: Deploy Hospital System
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: SSH into Server and Update App
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.BACKEND_DEPLOYMENT }}
+          username: ${{ secrets.BACKEND_DEPLOYMENT_USERNAME }}
+          key: ${{ secrets.BACKEND_DEPLOYMENT_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd /var/www/hospital-management-system
+            git pull origin develop
+            npm install
+            pm2 restart hospital-api

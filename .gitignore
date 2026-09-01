@@ -7,3 +7,4 @@ drizzle.config.ts
 src/models/migrations
 config/db.ts
 drizzle.config.ts
+.zed
