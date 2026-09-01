@@ -16,6 +16,27 @@ export const bloodGroupEnum = pgEnum("blood_group", ["O+", "A+", "AB+", "B+", "O
 
 
 
+// 1. Enum for Relationship Types
+export const relationshipEnum = pgEnum("relationship", [
+  "spouse",
+  "parent",
+  "sibling",
+  "child",
+  "guardian",
+  "grandparent",
+  "friend",
+  "other"
+]);
+
+// 2. Enum for Contact Types
+export const contactTypeEnum = pgEnum("contact_type", [
+  "mobile",
+  "home",
+  "work",
+  "emergency"
+]);
+
+
 
 // audit-log Table 
 
@@ -922,4 +943,36 @@ export const PatientDocuments = pgTable("patient_documents", {
   ...auditLogs
 });
 
+
+
+
+
+
+// 33. New Table: Multiple Next of Kin
+export const KinDetailsTable = pgTable("kin_details", {
+  id: uuid("kin_id").primaryKey().defaultRandom(),
+  patientId: uuid("patient_id")
+    .notNull()
+    .references(() => PatientTable.id, { onDelete: "cascade" }),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  middleName: text("middle_name"),
+  relationship: relationshipEnum("relationship").notNull(), 
+  phoneNumber: text("phone_number").notNull(),
+  email: text("email"),
+  addressId: uuid("address_id").references(() => Address.id),
+  ...auditLogs
+});
+
+// 34. New Table: Multiple Contact Information for Patients
+export const PatientContactsTable = pgTable("patient_contacts", {
+  id: uuid("contact_id").primaryKey().defaultRandom(),
+  patientId: uuid("patient_id")
+    .notNull()
+    .references(() => PatientTable.id, { onDelete: "cascade" }),
+  contactType: contactTypeEnum("contact_type").notNull().default("mobile"),
+  phoneNumber: text("phone_number").notNull(),
+  isPrimary: text("is_primary").notNull().default("false"), // To flag their main phone number
+  ...auditLogs
+});
 
