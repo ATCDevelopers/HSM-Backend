@@ -26,7 +26,7 @@ export const prescriptionsController = {
   },
 
   /**
-   * GET /api/prescriptions/search?name=Jane
+   * GET /api/prescriptions/search?name=Jane daniel
    * Search prescriptions using a patient's full name query parameter
    */
   async searchByPatientName(req: Request, res: Response, next: NextFunction): Promise<void> {
