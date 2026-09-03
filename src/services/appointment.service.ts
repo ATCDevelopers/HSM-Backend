@@ -373,10 +373,4 @@ export const getAppointmentReportsService = async (filters: AppointmentReportFil
   }
 
   return await getAppointmentReportsRepository(scoped);
-  if (filters.endDate) {
-    const end = new Date(filters.endDate);
-    end.setHours(23, 59, 59, 999);
-    filters.endDate = end;
-  }
-  return await getAppointmentReportsRepository(filters);
 };

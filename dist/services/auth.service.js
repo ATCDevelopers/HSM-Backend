@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { authRepository } from "../repositories/auth.repository.js";
+import { getUserByEmail } from "../repositories/user.repository.js";
 // Stateful cache list tracking manual session logouts
 export const tokenBlacklist = new Set();
 export const authService = {
@@ -9,7 +9,7 @@ export const authService = {
      */
     async loginUser(email, passwordInput) {
         // 1. Fetch user by email address
-        const user = await authRepository.findUserByEmail(email);
+        const user = await getUserByEmail(email);
         if (!user) {
             throw new Error("Invalid email or password configuration profiles");
         }

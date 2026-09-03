@@ -11,7 +11,7 @@ export const registerUser = async (userData: {
   email: string;
   phoneNumber: string;
   password: string;
-  role?: typeof UserTable.$inferInsert.role;
+  role: typeof UserTable.$inferInsert.role;
   departmentId?: string;
   imagePath?: string;
 }) => {
