@@ -18,7 +18,7 @@ jobs:
           key: ${{ secrets.BACKEND_DEPLOYMENT_PRIVATE_KEY }}
           port: 22
           script: |
-            cd /var/www/hospital-management-system
+            cd /var/www/hospital-management-system/HSM-Backend
             git pull origin develop
             npm install
             pm2 restart hospital-api
