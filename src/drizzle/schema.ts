@@ -7,7 +7,7 @@ import { relations } from 'drizzle-orm';
 export const roleEnum = pgEnum("role", ["Admin",
                                        "Doctor", "Nurse", "Receptionist",
                                        "Pharmacist", "LabTechnician", "Cashier",
-                                       "ClinicManager", "Accountant", "Patient"]);
+                                       "ClinicManager", "Accountant"]);
 
                                        
 export const statusEnum = pgEnum("status", ["deleted", "busy", "available"]);
@@ -83,7 +83,7 @@ export const UserTable = pgTable("user", {
   email: text("email").unique().notNull(),
   phoneNumber: text("phone_number").notNull(),
   password: text("password").notNull(),
-  role: roleEnum("role").notNull().default("Patient"),
+  role: roleEnum("role").notNull(),
   departmentId: uuid("department_id").references(() => Department.id),
 
   imagePath: text("image_path"),

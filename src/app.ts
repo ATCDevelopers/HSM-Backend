@@ -2,9 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 import userRoutes from './routes/user.route.js';
 import appointmentRoutes from './routes/appointment.route.js';
 import { initTokenCleanupCron } from './services/token.service.js';
@@ -14,23 +11,20 @@ import departmentRouter from "./routes/department.route.js";
 import labTestRouter from "./routes/labTest.route.js";
 import medicineRouter from "./routes/medicine.route.js"; 
 import prescriptionItemRouter from "./routes/prescriptionItem.route.js";
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const envPath = fs.existsSync(path.resolve(__dirname, './.env'))
-  ? path.resolve(__dirname, './.env')
-  : path.resolve(process.cwd(), '.env');
+import morgan from 'morgan'
 import patientRoutes from "./routes/patient.route.js";
 
-
-dotenv.config({ path: envPath });
+dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT;
 
 const corsOptions = {
   origin: process.env.CLIENT_URL,
   credentials: true
 };
 
+app.use(morgan('dev'));
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors(corsOptions));

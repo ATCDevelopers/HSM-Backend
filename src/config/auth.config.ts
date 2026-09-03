@@ -1,15 +1,7 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const envPath = fs.existsSync(path.resolve(__dirname, '../.env'))
-  ? path.resolve(__dirname, '../.env')
-  : path.resolve(process.cwd(), '.env');
-
-dotenv.config({ path: envPath });
+dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_REFRESH_TOKEN = process.env.JWT_REFRESH_TOKEN;
