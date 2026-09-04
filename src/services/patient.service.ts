@@ -1,6 +1,7 @@
 import { PatientTable } from "../drizzle/schema.js";
 import {
   createPatient,
+  PatientRepositorySoftDelete,
   getPatientByNhifCard,
   getPatientByEmail,
 } from "../repositories/patient.repository.js";
@@ -418,3 +419,53 @@ export class PatientServiceDelete {
 // 3. Export the standard module wrapper instance for controller level integration
 export const patientServiceInstance2 = new PatientServiceDelete();
 
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+
+// SOFT DELETE SERVICES 
+
+
+
+//import {  } from "./patient.repository";
+
+export const PatientServiceSoftDelete = {
+  /**
+   * Soft-deletes an active patient record
+   * Checks if the patient is active before attempting to flag them as deleted
+   */
+  async deletePatientProfile(id: string): Promise<boolean> {
+    // 1. Verify the patient exists and is currently active
+    const activePatient = await PatientRepositorySoftDelete.findActiveById(id);
+    if (!activePatient) {
+      throw new Error("Patient not found, or profile has already been deleted.");
+    }
+    
+    // 2. Perform the soft delete flags operation
+    return await PatientRepositorySoftDelete.softDelete(id);
+  },
+
+  /**
+   * Restores a soft-deleted patient back to clinical view
+   */
+  async restorePatientProfile(id: string): Promise<boolean> {
+    // 1. Attempt recovery directly
+    const isRestored = await PatientRepositorySoftDelete.recover(id);
+    if (!isRestored) {
+      throw new Error("Failed to restore patient. Check if the patient record exists.");
+    }
+    
+    return isRestored;
+  }
+};
