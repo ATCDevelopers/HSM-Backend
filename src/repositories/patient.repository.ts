@@ -1,4 +1,4 @@
-import { eq ,desc} from "drizzle-orm";
+import { eq ,desc,and} from "drizzle-orm";
 import { db } from "../config/db.js";
 import { PatientTable } from "../drizzle/schema.js";
 import { Address} from "../drizzle/schema.js";
@@ -436,3 +436,55 @@ export class PatientRepositoryDelete {
     });
   }
 }
+
+
+/////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+export const PatientRepositorySoftDelete = {
+  // Fetch active patients only
+  async findActiveById(id: string) {
+    const [patient] = await db
+      .select()
+      .from(PatientTable)
+      .where(and(eq(PatientTable.id, id), eq(PatientTable.isDeleted, false)));
+    return patient || null;
+  },
+
+  // Soft Delete
+  async softDelete(id: string): Promise<boolean> {
+    const result = await db
+      .update(PatientTable)
+      .set({ 
+        isDeleted: true,
+        deletedAt: new Date() 
+      })
+      .where(eq(PatientTable.id, id))
+      .returning({ deletedId: PatientTable.id });
+      
+    return result.length > 0;
+  },
+
+  // Recovery
+  async recover(id: string): Promise<boolean> {
+    const result = await db
+      .update(PatientTable)
+      .set({ 
+        isDeleted: false,
+        deletedAt: null 
+      })
+      .where(eq(PatientTable.id, id))
+      .returning({ recoveredId: PatientTable.id });
+      
+    return result.length > 0;
+  }
+};

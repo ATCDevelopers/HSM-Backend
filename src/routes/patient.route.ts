@@ -11,6 +11,7 @@ import { softDeletePatient, searchPatients } from "../controllers/patient.contro
 import {  Request, Response, NextFunction } from "express";
 import { checkAbility } from "../middleware/authorization.middleware.js";
 import { authenticateToken } from '../middleware/auth.middleware.js';
+import { deletePatient, recoverPatient } from "../controllers/patient.controller.js";
 
 
 //u can comment if want to test
@@ -51,6 +52,30 @@ router.get("/:id/pdf",
   patientController.generateReport,
 //  checkAbility("get", "patient")
 );
+
+
+
+
+
+
+/**
+ * @route   DELETE /api/patients/:id
+ * @desc    Soft-delete a patient profile by setting flags
+ * @access  Private/Clinical Staff
+ */
+router.delete("/patients/:id", deletePatient);
+
+/**
+ * @route   POST /api/patients/:id/recover
+ * @desc    Restore a soft-deleted patient back to the active pool
+ * @access  Private/Admin
+ */
+router.post("/patients/:id/recover", recoverPatient);
+
+
+
+
+
 
 
 

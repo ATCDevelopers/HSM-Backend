@@ -304,3 +304,69 @@ export const searchPatients = async (req: Request, res: Response): Promise<void>
 };
 
 
+//////////////////////////////////////////////////////////
+//
+///////////////////////////////////////////////////////
+//
+// import { Request, Response } from "express";
+// import { PatientService } from "./patient.service";
+
+
+
+
+
+import { PatientServiceSoftDelete } from "../services/patient.service.js";
+
+/**
+ * HTTP DELETE handler to flag a patient profile as soft-deleted
+ * URL: DELETE /api/patients/:id
+ */
+export async function deletePatient(req: Request, res: Response): Promise<Response> {
+  try {
+    const { id } = req.params;
+    
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({ success: false, error: "A valid Patient ID string is required." });
+    }
+
+    const isDeleted = await PatientServiceSoftDelete.deletePatientProfile(id);
+    
+    return res.status(200).json({
+      success: true,
+      message: "Patient profile soft-deleted successfully from active clinical views.",
+      data: { id }
+    });
+  } catch (error: any) {
+    return res.status(404).json({
+      success: false,
+      error: error.message || "An unexpected error occurred during soft deletion."
+    });
+  }
+}
+
+/**
+ * HTTP POST handler to restore a soft-deleted patient back to active pool
+ * URL: POST /api/patients/:id/recover
+ */
+export async function recoverPatient(req: Request, res: Response): Promise<Response> {
+  try {
+    const { id } = req.params;
+
+    if (!id || typeof id !== "string") {
+      return res.status(400).json({ success: false, error: "A valid Patient ID string is required." });
+    }
+
+    const isRestored = await PatientServiceSoftDelete.restorePatientProfile(id);
+    
+    return res.status(200).json({
+      success: true,
+      message: "Patient profile successfully recovered and restored to active pool.",
+      data: { id }
+    });
+  } catch (error: any) {
+    return res.status(404).json({
+      success: false,
+      error: error.message || "An unexpected error occurred during patient recovery."
+    });
+  }
+}

@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, text, timestamp, boolean, integer, primaryKey, doublePrecision, numeric, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, pgEnum, uuid, text, jsonb,timestamp, boolean, integer, primaryKey, doublePrecision, numeric, varchar } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 
@@ -490,19 +490,137 @@ export const DiagnosisTable = pgTable("diagnosis", {
 // 12.lab_test
 //=========================Type is not linked to Status Free makes universal type-id per test 
 
+// export const labTests = pgTable("lab_tests", {
+//   id: uuid("id").primaryKey().defaultRandom(),
+
+//   // Connects to your central lookup table to manage specific test types dynamically
+//   typeId: text("type").notNull(),
+
+//   code: text("code"),
+
+//   // Stored as numeric for exact decimal precision (e.g., 99.99)
+//   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+
+//   ...auditLogs, // Injects your 6 audit tracking fields automatically
+// });
+
+
+///////////////////////////////////////////////////////////////////
+/////////
+/////////          LABORATORY MANAGEMENT 
+/////////
+////////////////////////////////////////////////////////////////////
+
+
+
+
+// Dynamic field value types supported across clinical configurations
+export const fieldDataTypeEnum = pgEnum("field_data_type", [
+  "NUMERIC",      
+  "TEXT_SHORT",   
+  "SELECT_OPTION",
+  "NARRATIVE",    
+  "GRID_PANEL"    
+]);
+
+/**
+ * 1. DYNAMIC SAMPLE TYPES CATALOG
+ * Managed dynamically by hospital admins via the UI.
+ */
+export const labSampleTypes = pgTable("lab_sample_types", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),              // e.g., "Blood (Whole - EDTA)", "Stool"
+  code: text("code").unique().notNull(),      // e.g., "BLD_EDTA", "STL"
+  description: text("description"),          // e.g., "Purple top vacuum tube"
+  isAvailable: boolean("is_available").default(true).notNull(),
+  ...auditLogs
+});
+
+/**
+ * 2. THE TEST MASTER CATALOG
+ */
 export const labTests = pgTable("lab_tests", {
   id: uuid("id").primaryKey().defaultRandom(),
-
-  // Connects to your central lookup table to manage specific test types dynamically
-  typeId: text("type").notNull(),
-
-  code: text("code"),
-
-  // Stored as numeric for exact decimal precision (e.g., 99.99)
+  name: text("name").notNull(),          
+  code: text("code").unique().notNull(),  
+  department: text("department").notNull(), 
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
-
-  ...auditLogs, // Injects your 6 audit tracking fields automatically
+  sampleTypeId: uuid("sample_type_id").references(() => labSampleTypes.id, { onDelete: "restrict" }).notNull(),
+  isAvailable: boolean("is_available").default(true).notNull(),
+  ...auditLogs
 });
+
+/**
+ * 3. DYNAMIC FORM SCHEMAS (The Template Builder)
+ */
+export const labTestTemplates = pgTable("lab_test_templates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  labTestId: uuid("lab_test_id").references(() => labTests.id, { onDelete: "cascade" }).notNull(),
+  fields: jsonb("fields").notNull(), 
+  version: text("version").default("1.0.0").notNull(),
+  ...auditLogs
+});
+
+/**
+ * 4. LAB TEST ORDERS
+ * Now strictly integrated with StatusTable for both Order Lifecycle and Specimen Collection state tracking.
+ */
+export const labOrders = pgTable("lab_orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: uuid("patient_id").references(() => PatientTable.id, { onDelete: "restrict" }).notNull(),
+  labTestId: uuid("lab_test_id").references(() => labTests.id, { onDelete: "restrict" }).notNull(),
+  orderedBy: uuid("ordered_by_doctor_id").references(() => UserTable.id, { onDelete: "restrict" }).notNull(),
+  
+  // A. Linked to centralized StatusTable (groupType = "lab_order") -> pending, processing, completed
+  orderStatusId: uuid("order_status_id").references(() => StatusTable.id, { onDelete: "restrict" }).notNull(),
+  
+  // B. Linked to centralized StatusTable (groupType = "lab_sample") -> awaiting_collection, collected, rejected
+  sampleStatusId: uuid("sample_status_id").references(() => StatusTable.id, { onDelete: "restrict" }).notNull(),
+  
+  sampleBarCode: text("sample_barcode"), 
+  clinicalNotes: text("clinical_notes"), 
+  
+  orderedAt: timestamp("ordered_at").defaultNow().notNull(),
+  collectedAt: timestamp("collected_at"), 
+  collectedBy: uuid("collected_by_user_id").references(() => UserTable.id),
+  ...auditLogs
+});
+
+/**
+ * 5. DYNAMIC LAB TEST RESULTS
+ */
+export const labTestResults = pgTable("lab_test_results", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id").references(() => labOrders.id, { onDelete: "cascade" }).notNull(),
+  templateId: uuid("template_id").references(() => labTestTemplates.id).notNull(),
+  capturedData: jsonb("captured_data").notNull(),
+  flaggedAbnormalKeys: jsonb("flagged_abnormal_keys").default([]).notNull(), 
+  technicianNotes: text("technician_notes"),
+  performedBy: uuid("performed_by_tech_id").references(() => UserTable.id, { onDelete: "restrict" }).notNull(),
+  verifiedBy: uuid("verified_by_doctor_id").references(() => UserTable.id, { onDelete: "restrict" }),
+  completedAt: timestamp("completed_at"),
+  ...auditLogs
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+////////////////////////////////////////////////////
+/////////////
+////////////////////////////////////////////////////
+//////////////
+///////////////////////////////////////////////////
+
+
 
 // 13.diagnosis_labtest
 
