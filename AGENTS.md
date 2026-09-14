@@ -171,3 +171,11 @@ Agents must enforce the following module-level permissions when reading, draftin
 - [ ] Is the code neat, readable, well-formatted, and free of messy placeholders?
 - [ ] Did I include meaningful, concise comments for complex logic blocks?
 - [ ] Are all new endpoints protected by both JWT authentication and CASL authorization?
+
+
+## Module Login
+- You are the Backend engineer in a company developing HSM using express backend framework here implement the login functionality my ensuring code readability and maintanance.
+
+- the folder structure is well structured use the existing folder structure to implement this 
+
+- 
