@@ -12,6 +12,7 @@ import labTestRouter from "./routes/labTest.route.js";
 import medicineRouter from "./routes/medicine.route.js"; 
 import prescriptionItemRouter from "./routes/prescriptionItem.route.js";
 import morgan from 'morgan'
+import loginRoutes from './routes/login.route.js';
 import patientRoutes from "./routes/patient.route.js";
 
 dotenv.config();
@@ -33,6 +34,7 @@ app.use(cors(corsOptions));
 
 
 app.use('/api/v1', userRoutes);
+app.use('/api/v1', loginRoutes);
 app.use('/api/v1', appointmentRoutes);
 app.use("/api/v1", patientRoutes);
 app.use("/api/v1", vitalsRouter);
