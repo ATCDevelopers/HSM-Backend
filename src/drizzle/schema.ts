@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, text, jsonb,timestamp, boolean, integer, primaryKey, doublePrecision, numeric, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, pgEnum, uuid, serial ,  text, jsonb,timestamp, boolean, integer, primaryKey, doublePrecision, numeric, varchar } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 
@@ -539,76 +539,96 @@ export const labSampleTypes = pgTable("lab_sample_types", {
 /**
  * 2. THE TEST MASTER CATALOG
  */
-export const labTests = pgTable("lab_tests", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),          
-  code: text("code").unique().notNull(),  
-  department: text("department").notNull(), 
-  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
-  sampleTypeId: uuid("sample_type_id").references(() => labSampleTypes.id, { onDelete: "restrict" }).notNull(),
-  isAvailable: boolean("is_available").default(true).notNull(),
-  ...auditLogs
-});
 
-/**
- * 3. DYNAMIC FORM SCHEMAS (The Template Builder)
- */
-export const labTestTemplates = pgTable("lab_test_templates", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  labTestId: uuid("lab_test_id").references(() => labTests.id, { onDelete: "cascade" }).notNull(),
-  fields: jsonb("fields").notNull(), 
-  version: text("version").default("1.0.0").notNull(),
-  ...auditLogs
-});
+
 
 /**
  * 4. LAB TEST ORDERS
  * Now strictly integrated with StatusTable for both Order Lifecycle and Specimen Collection state tracking.
  */
-export const labOrders = pgTable("lab_orders", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  patientId: uuid("patient_id").references(() => PatientTable.id, { onDelete: "restrict" }).notNull(),
-  labTestId: uuid("lab_test_id").references(() => labTests.id, { onDelete: "restrict" }).notNull(),
-  orderedBy: uuid("ordered_by_doctor_id").references(() => UserTable.id, { onDelete: "restrict" }).notNull(),
-  
-  // A. Linked to centralized StatusTable (groupType = "lab_order") -> pending, processing, completed
-  orderStatusId: uuid("order_status_id").references(() => StatusTable.id, { onDelete: "restrict" }).notNull(),
-  
-  // B. Linked to centralized StatusTable (groupType = "lab_sample") -> awaiting_collection, collected, rejected
-  sampleStatusId: uuid("sample_status_id").references(() => StatusTable.id, { onDelete: "restrict" }).notNull(),
-  
-  sampleBarCode: text("sample_barcode"), 
-  clinicalNotes: text("clinical_notes"), 
-  
-  orderedAt: timestamp("ordered_at").defaultNow().notNull(),
-  collectedAt: timestamp("collected_at"), 
-  collectedBy: uuid("collected_by_user_id").references(() => UserTable.id),
-  ...auditLogs
-});
 
 /**
  * 5. DYNAMIC LAB TEST RESULTS
  */
-export const labTestResults = pgTable("lab_test_results", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  orderId: uuid("order_id").references(() => labOrders.id, { onDelete: "cascade" }).notNull(),
-  templateId: uuid("template_id").references(() => labTestTemplates.id).notNull(),
-  capturedData: jsonb("captured_data").notNull(),
-  flaggedAbnormalKeys: jsonb("flagged_abnormal_keys").default([]).notNull(), 
-  technicianNotes: text("technician_notes"),
-  performedBy: uuid("performed_by_tech_id").references(() => UserTable.id, { onDelete: "restrict" }).notNull(),
-  verifiedBy: uuid("verified_by_doctor_id").references(() => UserTable.id, { onDelete: "restrict" }),
-  completedAt: timestamp("completed_at"),
+
+
+// THESE TABLE CREATE TABLE OF WHICH CAN BE ALTERD BY WILL OF HOPITAL DEMANDS
+
+
+export const labTests = pgTable('lab_tests', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(), 
+  category: varchar('category', { length: 100 }).notNull(), 
+  description: text('description'),
+  
+  // Explicitly casting the jsonb schema block assists the driver during binding map lookups
+  formSchema: jsonb('form_schema').$type<any[]>().notNull(), 
+
   ...auditLogs
 });
 
 
 
+// 3. Deployment-Ready Relations Mapping
+// Since createdBy, updatedBy, and deletedBy all point to UserTable, we distinguish them with unique aliases.
+export const labTestsRelations = relations(labTests, ({ one }) => ({
+  creator: one(UserTable, {
+    fields: [labTests.createdBy],
+    references: [UserTable.id],
+    relationName: 'labTestCreator'
+  }),
+  updater: one(UserTable, {
+    fields: [labTests.updatedBy],
+    references: [UserTable.id],
+    relationName: 'labTestUpdater'
+  }),
+  deleter: one(UserTable, {
+    fields: [labTests.deletedBy],
+    references: [UserTable.id],
+    relationName: 'labTestDeleter'
+  }),
+}));
 
 
 
+/////////////////////////////////////////////////////////////////
 
+export const testResults = pgTable('test_results', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  
+  // Connects this filled result back to your master form schema layout
+  labTestTemplateId: uuid('lab_test_template_id')
+    .references(() => labTests.id)
+    .notNull(),
+    
+  // Connects to the specific patient receiving this test
+  patientId: uuid('patient_id').notNull(), 
+  
+  /**
+   * The actual clinical values filled by the technician.
+   * Maps field IDs to their recorded values, e.g.:
+   * { "gestational_age": 12, "risk_assessment": "Low Risk" }
+   */
+  values: jsonb('values').notNull(), 
+  
+  // Optional clinical remarks or summary notes added during evaluation
+  notes: text('notes'),
 
+  // Injects compliance audit columns (createdAt tracks execution timestamp)
+  ...auditLogs
+});
+
+// Production-ready relations to pull templates and users in one database query
+export const testResultsRelations = relations(testResults, ({ one }) => ({
+  template: one(labTests, {
+    fields: [testResults.labTestTemplateId],
+    references: [labTests.id],
+  }),
+  technician: one(UserTable, {
+    fields: [testResults.createdBy],
+    references: [UserTable.id],
+  })
+}));
 
 
 

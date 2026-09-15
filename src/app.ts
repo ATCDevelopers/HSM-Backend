@@ -8,13 +8,13 @@ import { initTokenCleanupCron } from './services/token.service.js';
 import vitalsRouter from "./routes/vital.route.js"
 import consultationRouter from "./routes/consultation.route.js"; 
 import departmentRouter from "./routes/department.route.js";
-import labTestRouter from "./routes/labTest.route.js";
+import testResultRouter from './routes/labTestResults.route.js';
 import medicineRouter from "./routes/medicine.route.js"; 
 import prescriptionItemRouter from "./routes/prescriptionItem.route.js";
 import morgan from 'morgan'
 import loginRoutes from './routes/login.route.js';
 import patientRoutes from "./routes/patient.route.js";
-
+import labTestConfigRoutes from "./routes/labTestConfig.route.js";
 dotenv.config();
 
 const app = express();
@@ -40,10 +40,11 @@ app.use("/api/v1", patientRoutes);
 app.use("/api/v1", vitalsRouter);
 app.use("/api/v1", consultationRouter);
 app.use("/api/v1", departmentRouter)
-app.use("/api/v1", labTestRouter);
+
 app.use("/api/v1", medicineRouter);  
 app.use("/api/v1", prescriptionItemRouter);
-
+app.use("/api/v1/labtest", labTestConfigRoutes);
+app.use('/api/v1/test-results', testResultRouter);
 
 // Initialize node-cron token cleanup job
 initTokenCleanupCron();

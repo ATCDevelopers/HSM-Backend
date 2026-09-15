@@ -1,5 +1,4 @@
 
-
 import { db } from "../config/db.js"; // Adjust path to your Drizzle db instance
 import { PrescriptionsTable, PatientTable, UserTable, StatusTable } from "../drizzle/schema.js"; // Adjust schema path
 import { eq, desc, or, and, ilike } from "drizzle-orm";

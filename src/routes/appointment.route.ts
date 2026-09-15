@@ -22,6 +22,8 @@ import {
 
 const router = express.Router();
 
+
+
 // 1. Doctor Schedules & Availability
 router.get(
   '/doctors/:doctorId/availability',
