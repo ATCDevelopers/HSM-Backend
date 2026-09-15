@@ -15,7 +15,7 @@ import { deletePatient, recoverPatient } from "../controllers/patient.controller
 
 
 //u can comment if want to test
-//router.use(authenticateToken);
+router.use(authenticateToken);
 
 
 
