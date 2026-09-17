@@ -138,31 +138,58 @@ type PatientUpdate = Partial<Omit<typeof PatientTable.$inferInsert, "addressId">
 // 4. Service ya kusasisha taarifa za Mgonjwa na Anwani yake
 export const updatePatientAndAddress = async (
   patientId: string,
-  patientData: PatientUpdate,
-  addressData: AddressUpdate
+  patientData: Record<string, any>,
+  addressData: Record<string, any>
 ) => {
   if (!patientId) {
     throw new Error("ID is required for patient update");
   }
 
-  
   const existingPatient = await patientRepository.getPatientWithAddressById(patientId);
   if (!existingPatient) {
-    throw new Error(`Patient with ID ${patientId} has not been found .`);
+    throw new Error(`Patient with ID ${patientId} has not been found.`);
   }
 
-  
+  // Sanitize patient fields to match PatientTable schema
+  const sanitizedPatient: Record<string, any> = {};
+  if (patientData.firstName !== undefined) sanitizedPatient.firstName = patientData.firstName;
+  if (patientData.lastName !== undefined) sanitizedPatient.lastName = patientData.lastName;
+  if (patientData.middleName !== undefined) sanitizedPatient.middleName = patientData.middleName;
+  if (patientData.gender !== undefined) sanitizedPatient.gender = patientData.gender;
+  if (patientData.nhifCard !== undefined || patientData.nhifNumber !== undefined) {
+    sanitizedPatient.nhifCard = patientData.nhifCard || patientData.nhifNumber;
+  }
+  if (patientData.email !== undefined) sanitizedPatient.email = patientData.email;
+  if (patientData.dateOfBirth !== undefined) {
+    sanitizedPatient.dateOfBirth = typeof patientData.dateOfBirth === "string" ? new Date(patientData.dateOfBirth) : patientData.dateOfBirth;
+  }
+  if (patientData.bloodGroup !== undefined) sanitizedPatient.bloodGroup = patientData.bloodGroup;
+  if (patientData.phoneNumber !== undefined || patientData.phone !== undefined) {
+    sanitizedPatient.phoneNumber = patientData.phoneNumber || patientData.phone;
+  }
+  if (patientData.photoUrl !== undefined || patientData.photo !== undefined) {
+    sanitizedPatient.photoUrl = patientData.photoUrl ?? patientData.photo;
+  }
+  if (patientData.nationalId !== undefined) sanitizedPatient.nationalId = patientData.nationalId;
+
+  // Sanitize address fields to match Address schema
+  const sanitizedAddress: Record<string, any> = {};
+  if (addressData.region !== undefined) sanitizedAddress.region = addressData.region;
+  if (addressData.district !== undefined) sanitizedAddress.district = addressData.district;
+  if (addressData.city !== undefined) sanitizedAddress.city = addressData.city;
+  if (addressData.state !== undefined) sanitizedAddress.state = addressData.state;
+  if (addressData.postalCode !== undefined || addressData.PostalCode !== undefined) {
+    sanitizedAddress.PostalCode = addressData.postalCode ?? addressData.PostalCode;
+  }
+  if (addressData.country !== undefined) sanitizedAddress.country = addressData.country;
+
   const addressId = existingPatient.address?.id;
-  if (!addressId && Object.keys(addressData).length > 0) {
-    throw new Error("This patient doe not have Address issued");
-  }
 
-  
   const updatedPatient = await patientRepository.updatePatientWithAddress(
     patientId,
-    addressId!, // Tunapitisha ID ya anwani iliyopatikana kwenye database
-    patientData,
-    addressData
+    addressId || undefined,
+    sanitizedPatient,
+    sanitizedAddress
   );
 
   return updatedPatient;

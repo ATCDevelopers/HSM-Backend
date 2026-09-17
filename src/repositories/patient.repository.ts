@@ -186,18 +186,25 @@ type PatientUpdate = Partial<Omit<typeof PatientTable.$inferInsert, "addressId">
 // 2. Repository ya kusasisha Mgonjwa na Anwani yake kwa usalama
 export const updatePatientWithAddress = async (
   patientId: string,
-  addressId: string,
-  patientData: PatientUpdate,
-  addressData: AddressUpdate
+  addressId: string | undefined,
+  patientData: Record<string, any>,
+  addressData: Record<string, any>
 ) => {
   return await db.transaction(async (tx) => {
-    
-    // Hatua ya 1: Sasisha jedwali la Anwani ikiwa kuna data iliyotumwa
-    if (Object.keys(addressData).length > 0) {
+    // Hatua ya 1: Sasisha jedwali la Anwani ikiwa ipo na kuna data iliyotumwa
+    if (addressId && Object.keys(addressData).length > 0) {
       await tx
         .update(Address)
         .set(addressData)
         .where(eq(Address.id, addressId));
+    } else if (!addressId && Object.keys(addressData).length > 0) {
+      const [newAddress] = await tx
+        .insert(Address)
+        .values(addressData as any)
+        .returning({ id: Address.id });
+      if (newAddress?.id) {
+        patientData.addressId = newAddress.id;
+      }
     }
 
     // Hatua ya 2: Sasisha jedwali la Mgonjwa ikiwa kuna data iliyotumwa
@@ -209,13 +216,7 @@ export const updatePatientWithAddress = async (
     }
 
     // Hatua ya 3: Rejesha data kamili ya Mgonjwa baada ya mabadiliko
-    const [updatedPatient] = await tx
-      .select()
-      .from(PatientTable)
-      .where(eq(PatientTable.id, patientId))
-      .limit(1);
-
-    return updatedPatient || null;
+    return await getPatientWithAddressById(patientId);
   });
 };
 

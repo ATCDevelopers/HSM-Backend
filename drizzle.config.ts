@@ -1,17 +1,21 @@
 import { defineConfig } from "drizzle-kit"
-//import { Schema } from "mongoose";
+import dotenv from 'dotenv'
 
+dotenv.config();
 
-
-export default defineConfig ({
-    schema : "./src/drizzle/schema.ts",
-    out : "./src/drizzle/migrations",
+export default defineConfig({
+    schema: "./src/drizzle/schema.ts",
+    out: "./src/drizzle/migrations",
     dialect: "postgresql",
-    dbCredentials : {
-       url : process.env.DATABASE_URL as string
-        
+    dbCredentials: {
+        host: process.env.DB_HOST!,
+        port: Number(process.env.DB_PORT) || 5432,
+        user: process.env.DB_USER!,
+        password: process.env.DB_PASSWORD!,
+        database: process.env.DB_NAME!,
+
     },
 
-    verbose : true,
-    strict : true ,
+    verbose: true,
+    strict: true,
 })
