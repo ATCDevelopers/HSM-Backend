@@ -58,8 +58,8 @@ export const registerUser = async (userData: {
   };
 };
 
-export const fetchUsers = async () => {
-  return await getAllUsers();
+export const fetchUsers = async (includeDeleted: boolean = false) => {
+  return await getAllUsers(includeDeleted);
 };
 
 export const fetchUserById = async (id: string) => {
@@ -82,6 +82,8 @@ export const modifyUser = async (
     role?: typeof UserTable.$inferInsert.role;
     departmentId?: string;
     imagePath?: string;
+    status?: string;
+    isDeleted?: boolean;
   }
 ) => {
   const existingUser = await getUserByIdSanitized(id);
@@ -96,7 +98,23 @@ export const modifyUser = async (
     }
   }
 
-  const payload: Partial<typeof UserTable.$inferInsert> = { ...updateData };
+  const { status, ...rest } = updateData;
+  const payload: Partial<typeof UserTable.$inferInsert> = { ...rest };
+
+  if (status !== undefined) {
+    const upperStatus = status.toUpperCase();
+    if (upperStatus === 'INACTIVE' || upperStatus === 'DEACTIVE') {
+      payload.isDeleted = true;
+      payload.deletedAt = null;
+    } else if (upperStatus === 'ACTIVE' || upperStatus === 'AVAILABLE') {
+      payload.isDeleted = false;
+      payload.deletedAt = null;
+    }
+  }
+
+  if (updateData.isDeleted !== undefined) {
+    payload.isDeleted = updateData.isDeleted;
+  }
 
   if (updateData.password) {
     payload.password = await bcrypt.hash(updateData.password, 10);
@@ -106,12 +124,12 @@ export const modifyUser = async (
   return updatedUser;
 };
 
-export const removeUser = async (id: string) => {
+export const removeUser = async (id: string, deletedBy?: string) => {
   const existingUser = await getUserByIdSanitized(id);
   if (!existingUser) {
     throw new Error('User not found');
   }
-  const deleted = await deleteUser(id);
+  const deleted = await deleteUser(id, deletedBy);
   return deleted;
 };
 

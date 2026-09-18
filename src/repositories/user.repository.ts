@@ -1,6 +1,6 @@
 import { db } from '../config/db.js';
 import { UserTable } from '../drizzle/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, isNull } from 'drizzle-orm';
 
 export const createUser = async (userData: typeof UserTable.$inferInsert) => {
   const result = await db.insert(UserTable).values(userData).returning();
@@ -29,17 +29,23 @@ export const getUserByIdSanitized = async (id: string) => {
       role: UserTable.role,
       departmentId: UserTable.departmentId,
       imagePath: UserTable.imagePath,
+      isDeleted: UserTable.isDeleted,
+      deletedAt: UserTable.deletedAt,
       createdAt: UserTable.createdAt,
       updatedAt: UserTable.updatedAt,
     })
     .from(UserTable)
     .where(eq(UserTable.id, id));
-  return result[0] || null;
+
+  if (!result[0]) return null;
+  return {
+    ...result[0],
+    status: result[0].isDeleted ? "INACTIVE" : "ACTIVE",
+  };
 };
 
-export const getAllUsers = async () => {
-
-  return await db
+export const getAllUsers = async (includeDeleted: boolean = false) => {
+  const query = db
     .select({
       id: UserTable.id,
       firstName: UserTable.firstName,
@@ -50,10 +56,21 @@ export const getAllUsers = async () => {
       role: UserTable.role,
       departmentId: UserTable.departmentId,
       imagePath: UserTable.imagePath,
+      isDeleted: UserTable.isDeleted,
+      deletedAt: UserTable.deletedAt,
       createdAt: UserTable.createdAt,
       updatedAt: UserTable.updatedAt,
     })
     .from(UserTable);
+
+  const result = includeDeleted
+    ? await query
+    : await query.where(isNull(UserTable.deletedAt));
+
+  return result.map((user) => ({
+    ...user,
+    status: user.isDeleted ? "INACTIVE" : "ACTIVE",
+  }));
 };
 
 export const updateUser = async (id: string, updateData: Partial<typeof UserTable.$inferInsert>) => {
@@ -74,25 +91,36 @@ export const updateUser = async (id: string, updateData: Partial<typeof UserTabl
       role: UserTable.role,
       departmentId: UserTable.departmentId,
       imagePath: UserTable.imagePath,
+      isDeleted: UserTable.isDeleted,
+      deletedAt: UserTable.deletedAt,
       createdAt: UserTable.createdAt,
       updatedAt: UserTable.updatedAt,
     });
-  return result[0] || null;
+
+  if (!result[0]) return null;
+  return {
+    ...result[0],
+    status: result[0].isDeleted ? "INACTIVE" : "ACTIVE",
+  };
 };
 
-export const deleteUser = async (id: string) => {
+export const deleteUser = async (id: string, deletedBy?: string) => {
   const result = await db
-    .delete(UserTable)
+    .update(UserTable)
+    .set({
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedBy: deletedBy || null,
+      updatedAt: new Date(),
+    })
     .where(eq(UserTable.id, id))
-    .returning({ id: UserTable.id });
+    .returning({
+      id: UserTable.id,
+      isDeleted: UserTable.isDeleted,
+      deletedAt: UserTable.deletedAt,
+    });
   return result[0] || null;
 };
-
-
-///////////////////////////////////////////////////////////////
-
-// Tillya
-///////////////////////////////////////////////////////////////
 
 
 export const findUserByPhone = async (phoneNumber: string) => {
@@ -103,18 +131,6 @@ export const findUserByPhone = async (phoneNumber: string) => {
   return result[0] || null;
 };
 
-
-// export const saveOtpToken = async (phoneNumber: string, otp: string, expiresAt: Date) => {
-//   const result = await db
-//     .insert(OtpTable)
-//     .values({
-//       phoneNumber,
-//       otp,
-//       expiresAt,
-//     })
-//     .returning({ id: OtpTable.id, phoneNumber: OtpTable.phoneNumber });
-//   return result[0] || null;
-// };
 
 
 

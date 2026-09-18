@@ -23,9 +23,13 @@ const loginUser = async (email: string, password: string): Promise<LoginResponse
     throw new Error('Invalid email or password');
   }
 
-  // Soft-deleted accounts must not be allowed to authenticate
+  // Deleted or inactive accounts must not be allowed to authenticate
+  if (user.deletedAt) {
+    throw new Error('This account has been deleted');
+  }
+
   if (user.isDeleted) {
-    throw new Error('This account has been deactivated');
+    throw new Error('This account is inactive. Please contact your administrator');
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.password);

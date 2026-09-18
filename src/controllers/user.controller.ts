@@ -84,7 +84,8 @@ export const registerWorker = async (req: AuthenticatedRequest, res: Response): 
 
 export const getUsers = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const users = await fetchUsers();
+    const includeDeleted = req.query.includeDeleted === 'true';
+    const users = await fetchUsers(includeDeleted);
     res.status(200).json({
       message: 'Users retrieved successfully',
       data: users
@@ -123,7 +124,7 @@ export const updateUserController = async (req: AuthenticatedRequest, res: Respo
       return;
     }
 
-    const { firstName, secondName, lastName, email, phoneNumber, password, role, departmentId, imagePath } = req.body;
+    const { firstName, secondName, lastName, email, phoneNumber, password, role, departmentId, imagePath, status, isDeleted } = req.body;
 
     const updatedUser = await modifyUser(id, {
       firstName,
@@ -135,6 +136,8 @@ export const updateUserController = async (req: AuthenticatedRequest, res: Respo
       role,
       departmentId,
       imagePath,
+      status,
+      isDeleted,
     });
 
     res.status(200).json({
@@ -162,7 +165,8 @@ export const deleteUserController = async (req: AuthenticatedRequest, res: Respo
       return;
     }
 
-    await removeUser(id);
+    const deletedBy = req.user?.id;
+    await removeUser(id, deletedBy);
 
     res.status(200).json({
       message: 'User deleted successfully'
