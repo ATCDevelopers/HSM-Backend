@@ -12,10 +12,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       return;
     }
 
-    if(password.length < 6){
-       res.status(400).json({message: "Password must have atleast 6 characters or long"});
-       return;
-    }
+  
 
     const sessionData = await loginService.loginUser(email, password);
 

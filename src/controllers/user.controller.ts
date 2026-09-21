@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { registerUser, fetchUsers, fetchUserById, modifyUser, removeUser } from '../services/user.service.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import { error } from 'console';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -8,6 +9,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     if (!firstName || !lastName || !email || !phoneNumber || !password) {
       res.status(400).json({ error: 'Missing required fields' });
+      return;
+    }
+    if(password.length < 6){
+      res.status(400).json({error: "Password must have atleast 6 characters"});
       return;
     }
 
