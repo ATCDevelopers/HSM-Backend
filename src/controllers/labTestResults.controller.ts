@@ -22,6 +22,26 @@ export async function submitTestResult(
 }
 
 /**
+ * Lists lab results. Doctors only ever see the results sent to them; other readers
+ * may pass ?doctorId= to filter.
+ * GET /api/v1/test-results
+ */
+export async function listTestResults(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const user = (req as any).user;
+    const doctorId = user.role === 'Doctor' ? user.id : (req.query.doctorId as string | undefined) || undefined;
+    const results = await testResultService.listResults(doctorId);
+    res.status(200).json({ success: true, data: results });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * Fetches a single lab test result record loaded with its master form layout structure.
  * GET /api/v1/test-results/:id
  */

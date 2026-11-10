@@ -18,11 +18,11 @@ router.post("/prescription-items/", checkAbility('write', 'Prescription'),create
 router.get("/prescription-items",checkAbility('read', 'Prescription'), getAllPrescriptionItems);
 
 // Parent prescription collection context routing path
-router.get("/prescription-items/prescription/:prescriptionId", getItemsByPrescriptionId);
+router.get("/prescription-items/prescription/:prescriptionId", checkAbility('read', 'Prescription'), getItemsByPrescriptionId);
 
 // Specific resource line items endpoints
-router.get("/prescription-items/:id", getPrescriptionItemById);
-router.put("/prescription-items/:id",updatePrescriptionItem);
-router.delete("/prescription-items/:id",deletePrescriptionItem);
+router.get("/prescription-items/:id", checkAbility('read', 'Prescription'), getPrescriptionItemById);
+router.put("/prescription-items/:id", checkAbility('write', 'Prescription'), updatePrescriptionItem);
+router.delete("/prescription-items/:id", checkAbility('write', 'Prescription'), deletePrescriptionItem);
 
 export default router;

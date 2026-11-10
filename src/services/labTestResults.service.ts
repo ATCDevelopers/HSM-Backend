@@ -1,5 +1,6 @@
 import { TestResultRepository } from "../repositories/LabTestResults.repository.js"; // Adjust path to repository
 import { testResults } from "../drizzle/schema.js"; // Adjust path to schema
+import { chargeLabResult } from "./billing.service.js";
 
 const repo = new TestResultRepository();
 
@@ -10,7 +11,9 @@ async function createResult(
   userId: string,
   payload: Omit<typeof testResults.$inferInsert, 'id' | 'createdAt' | 'updatedAt' | 'isDeleted' | 'createdBy' | 'updatedBy' | 'deletedAt' | 'deletedBy'>
 ) {
-  return await repo.create(payload, userId);
+  const result = await repo.create(payload, userId);
+  await chargeLabResult(result, userId);
+  return result;
 }
 
 /**
@@ -22,6 +25,13 @@ async function getResultById(id: string) {
     throw new Error('Requested laboratory evaluation report not found or has been archived');
   }
   return result;
+}
+
+/**
+ * Lab results inbox; doctorId narrows it to the results sent to one doctor.
+ */
+async function listResults(doctorId?: string) {
+  return await repo.findAll({ doctorId });
 }
 
 /**
@@ -59,6 +69,7 @@ async function archiveResult(id: string, userId: string) {
 
 // Unified functional service export matching your structural pattern
 export const testResultService = {
+  listResults,
   createResult,
   getResultById,
   queryResultsByPatient,

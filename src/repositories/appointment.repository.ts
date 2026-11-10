@@ -65,6 +65,7 @@ export interface RescheduleAppointmentInput {
 }
 
 export interface AppointmentReportFilters {
+  appointmentId?: string;
   doctorId?: string;
   patientId?: string;
   startDate?: Date;
@@ -484,6 +485,9 @@ export const findUpcomingAppointmentsRepository = async (withinHours: number = 2
 export const getAppointmentReportsRepository = async (filters: AppointmentReportFilters) => {
   const conditions = [sql`(${AppointmentTable.deletedAt} IS NULL OR ${AppointmentTable.deletedBy} IS NULL)`];
 
+  if (filters.appointmentId) {
+    conditions.push(eq(AppointmentTable.id, filters.appointmentId));
+  }
   if (filters.doctorId) {
     conditions.push(eq(AppointmentTable.doctorId, filters.doctorId));
   }

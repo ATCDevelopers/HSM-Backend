@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { registerUser, fetchUsers, fetchUserById, modifyUser, removeUser } from '../services/user.service.js';
+import { registerUser, fetchUsers, fetchUserById, modifyUser, removeUser, fetchDoctors } from '../services/user.service.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { error } from 'console';
 
@@ -97,6 +97,18 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response): Promis
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to fetch users' });
+  }
+};
+
+export const getDoctors = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const doctors = await fetchDoctors();
+    res.status(200).json({
+      message: 'Doctors retrieved successfully',
+      data: doctors
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to fetch doctors' });
   }
 };
 

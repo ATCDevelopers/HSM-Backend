@@ -14,7 +14,7 @@ export const vitalsController = {
    */
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const newVitals = await vitalsService.recordVitals(req.body);
+      const newVitals = await vitalsService.recordVitals({ ...req.body, createdBy: (req as any).user?.id });
       res.status(201).json({
         success: true,
         message: "Vitals recorded successfully",

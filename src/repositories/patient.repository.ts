@@ -62,6 +62,7 @@ export const getPatientsWithAddress = async () => {
       middleName: PatientTable.middleName,
       gender: PatientTable.gender,
       nhifCard: PatientTable.nhifCard,
+      paymentMode: PatientTable.paymentMode,
       email: PatientTable.email,
       dateOfBirth: PatientTable.dateOfBirth,
       bloodGroup: PatientTable.bloodGroup,
@@ -94,6 +95,7 @@ export const getPatientWithAddressById = async (patientId: string) => {
       middleName: PatientTable.middleName,
       gender: PatientTable.gender,
       nhifCard: PatientTable.nhifCard,
+      paymentMode: PatientTable.paymentMode,
       email: PatientTable.email,
       dateOfBirth: PatientTable.dateOfBirth,
       bloodGroup: PatientTable.bloodGroup,
@@ -238,7 +240,8 @@ export interface PatientWithAddress {
   lastName: string;
   middleName: string | null;
   gender: any; // Fallback to avoid enum string mismatch
-  nhifCard: string;
+  nhifCard: string | null;
+  paymentMode: "NHIF" | "INSURANCE" | "CASH";
   email: string;
   dateOfBirth: Date;
   bloodGroup: any; // Fallback to avoid enum string mismatch
@@ -270,6 +273,7 @@ export class PatientRepository {
         middleName: PatientTable.middleName,
         gender: PatientTable.gender,
         nhifCard: PatientTable.nhifCard,
+        paymentMode: PatientTable.paymentMode,
         email: PatientTable.email,
         dateOfBirth: PatientTable.dateOfBirth,
         bloodGroup: PatientTable.bloodGroup,
@@ -302,7 +306,7 @@ export class PatientRepository {
 ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////
-import { PatientDocuments } from "../drizzle/schema.js";
+import { PatientDocuments, UserTable } from "../drizzle/schema.js";
 
 
 
@@ -315,6 +319,11 @@ export interface CreateDocumentInput {
   fileUrl: string;
   mimeType: string;
   fileSize: string;
+  sourceInstitution?: string | null;
+  documentType?: string | null;
+  documentDate?: Date | null;
+  notes?: string | null;
+  createdBy?: string | null;
 }
 
 export class DocumentRepository {
@@ -330,6 +339,11 @@ export class DocumentRepository {
         fileUrl: data.fileUrl,
         mimeType: data.mimeType,
         fileSize: data.fileSize,
+        sourceInstitution: data.sourceInstitution ?? null,
+        documentType: data.documentType ?? null,
+        documentDate: data.documentDate ?? null,
+        notes: data.notes ?? null,
+        createdBy: data.createdBy ?? null,
       })
       .returning();
 
@@ -342,10 +356,43 @@ export class DocumentRepository {
    */
   async getDocumentsByPatientId(patientId: string) {
     return await db
+      .select({
+        id: PatientDocuments.id,
+        patientId: PatientDocuments.patientId,
+        documentName: PatientDocuments.documentName,
+        mimeType: PatientDocuments.mimeType,
+        fileSize: PatientDocuments.fileSize,
+        sourceInstitution: PatientDocuments.sourceInstitution,
+        documentType: PatientDocuments.documentType,
+        documentDate: PatientDocuments.documentDate,
+        notes: PatientDocuments.notes,
+        createdAt: PatientDocuments.createdAt,
+        uploadedByFirstName: UserTable.firstName,
+        uploadedByLastName: UserTable.lastName,
+      })
+      .from(PatientDocuments)
+      .leftJoin(UserTable, eq(PatientDocuments.createdBy, UserTable.id))
+      .where(and(eq(PatientDocuments.patientId, patientId), eq(PatientDocuments.isDeleted, false)))
+      .orderBy(desc(PatientDocuments.createdAt));
+  }
+
+  /** One document, only if it belongs to the given patient (so ids can't be mixed across patients). */
+  async getDocument(patientId: string, documentId: string) {
+    const [doc] = await db
       .select()
       .from(PatientDocuments)
-      .where(eq(PatientDocuments.patientId, patientId))
-      .orderBy(desc(PatientDocuments.createdAt));
+      .where(and(eq(PatientDocuments.id, documentId), eq(PatientDocuments.patientId, patientId), eq(PatientDocuments.isDeleted, false)));
+    return doc ?? null;
+  }
+
+  /** Soft delete: the file stays on disk for the audit trail but is no longer listed or served. */
+  async softDeleteDocument(patientId: string, documentId: string, userId?: string) {
+    const [doc] = await db
+      .update(PatientDocuments)
+      .set({ isDeleted: true, deletedAt: new Date(), deletedBy: userId ?? null })
+      .where(and(eq(PatientDocuments.id, documentId), eq(PatientDocuments.patientId, patientId), eq(PatientDocuments.isDeleted, false)))
+      .returning();
+    return doc ?? null;
   }
 }
 

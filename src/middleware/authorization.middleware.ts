@@ -1,8 +1,8 @@
-import { Response, NextFunction } from 'express';
+import { Response, NextFunction, RequestHandler } from 'express';
 import { AuthenticatedRequest } from './auth.middleware.js';
 import { Actions, Subjects } from '../config/ability.js';
 
-export const adminOnly = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+export const adminOnly: RequestHandler<any> = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
   if (!req.user) {
     res.status(401).json({ error: 'Authentication required' });
     return;
@@ -16,7 +16,8 @@ export const adminOnly = (req: AuthenticatedRequest, res: Response, next: NextFu
   next();
 };
 
-export const checkAbility = (action: Actions, subject: Subjects) => {
+// Typed as RequestHandler<any> so it composes with handlers that declare their own params (e.g. Request<IdParam>).
+export const checkAbility = (action: Actions, subject: Subjects): RequestHandler<any> => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user || !req.ability) {
       res.status(401).json({ error: 'Authentication required' });

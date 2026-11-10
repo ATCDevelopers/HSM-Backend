@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, serial ,  text, jsonb,timestamp, boolean, integer, primaryKey, doublePrecision, numeric, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, pgEnum, uniqueIndex, uuid, serial ,  text, jsonb,timestamp, boolean, integer, primaryKey, doublePrecision, numeric, varchar } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 
@@ -13,6 +13,8 @@ export const roleEnum = pgEnum("role", ["Admin",
 export const statusEnum = pgEnum("status", ["deleted", "busy", "available"]);
 export const genderEnum = pgEnum("gender", ["Male", "Female", "Other"]);
 export const bloodGroupEnum = pgEnum("blood_group", ["O+", "A+", "AB+", "B+", "O-", "A-", "AB-", "B-"]);
+// How a patient pays: NHIF / private insurance (card number in nhif_card) or cash, which pays a registration fee.
+export const paymentModeEnum = pgEnum("payment_mode", ["NHIF", "INSURANCE", "CASH"]);
 
 
 
@@ -85,6 +87,9 @@ export const UserTable = pgTable("user", {
   password: text("password").notNull(),
   role: roleEnum("role").notNull(),
   departmentId: uuid("department_id").references(() => Department.id),
+  // Whether the person can take work right now: available | busy | on_leave | off_duty
+  availability: text("availability").default("available").notNull(),
+  availabilityUpdatedAt: timestamp("availability_updated_at"),
 
   imagePath: text("image_path"),
   ...auditLogs,
@@ -98,7 +103,9 @@ export const PatientTable = pgTable("patients", {
   lastName: text("last_name").notNull(),
   middleName: text("middle_name"),
   gender: genderEnum("gender").notNull(),
-  nhifCard: text("nhif_card").unique().notNull(),
+  // NHIF or insurance card number; empty for cash patients
+  nhifCard: text("nhif_card").unique(),
+  paymentMode: paymentModeEnum("payment_mode").default("NHIF").notNull(),
   email: text("email").unique().notNull(),
   dateOfBirth: timestamp("date_of_birth").notNull(),
   bloodGroup: bloodGroupEnum("blood_group").notNull(),
@@ -247,6 +254,9 @@ export const Department = pgTable("department", {
   // Self-referencing foreign key for parent/sub-departments
   parentDepartmentId: uuid("parent_department_id")
     .references((): any => Department.id, { onDelete: "set null" }),
+
+  // Head of department, appointed by an admin; must be a member of this department
+  headUserId: uuid("head_user_id").references((): any => UserTable.id, { onDelete: "set null" }),
 
   ...auditLogs
 });
@@ -603,6 +613,9 @@ export const testResults = pgTable('test_results', {
     
   // Connects to the specific patient receiving this test
   patientId: uuid('patient_id').notNull(), 
+
+  // Doctor the result is sent to for review; optional so walk-in tests can still be recorded
+  doctorId: uuid('doctor_id').references(() => UserTable.id),
   
   /**
    * The actual clinical values filled by the technician.
@@ -627,6 +640,12 @@ export const testResultsRelations = relations(testResults, ({ one }) => ({
   technician: one(UserTable, {
     fields: [testResults.createdBy],
     references: [UserTable.id],
+    relationName: 'testResultTechnician'
+  }),
+  doctor: one(UserTable, {
+    fields: [testResults.doctorId],
+    references: [UserTable.id],
+    relationName: 'testResultDoctor'
   })
 }));
 
@@ -790,7 +809,7 @@ export const InvoiceTable = pgTable("invoice", {
 
   // Connects the invoice to the patient; prevents profile deletion if invoices exist
   patientId: uuid("patient_id")
-    .references((): any => UserTable.id, { onDelete: "restrict" })
+    .references((): any => PatientTable.id, { onDelete: "restrict" })
     .notNull(),
 
   // Dynamic status reference (e.g., "Draft", "Sent", "Paid", "Partially Paid", "Voided")
@@ -816,9 +835,6 @@ export const InvoiceItemsTable = pgTable("invoice_items", {
     .notNull(),
 
   serviceName: text("service_name").notNull(), // e.g., "Blood Panel Test", "Consultation Fee"
-
-  // Categorizes the item type dynamically via your central lookup table
-  type: text("description"),
 
   description: text("description"), // Optional notes about the specific charge
 
@@ -1078,6 +1094,14 @@ export const PatientDocuments = pgTable("patient_documents", {
   // (Mfano: "450.5 KB" au "2.1 MB")
   fileSize: text("file_size").notNull(),
 
+  // Where the document came from, e.g. "Muhimbili National Hospital"; null for documents produced here
+  sourceInstitution: text("source_institution"),
+  // referral_letter | lab_report | imaging | discharge_summary | prescription | medical_report | other
+  documentType: text("document_type"),
+  // Date written on the document (not the upload date)
+  documentDate: timestamp("document_date"),
+  notes: text("notes"),
+
   ...auditLogs
 });
 
@@ -1114,3 +1138,51 @@ export const PatientContactsTable = pgTable("patient_contacts", {
   ...auditLogs
 });
 
+
+
+// ─── Billing: service price list and automatic charges ──────────────────────────────────────────
+
+/**
+ * Everything the hospital can bill for. Rows are discovered automatically (one per lab test, medicine,
+ * appointment type, plus fixed services such as registration and vitals) and priced by billing staff.
+ * price is null until billing sets it.
+ */
+export const BillableServicesTable = pgTable("billable_services", {
+  id: uuid("billable_service_id").primaryKey().defaultRandom(),
+  // Stable discovery key, e.g. "REGISTRATION", "VITALS", "CONSULTATION:Follow-up", "LAB:<testId>", "MED:<medicineId>"
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  // registration | consultation | nursing | laboratory | pharmacy | other
+  category: text("category").notNull(),
+  department: text("department").notNull(),
+  price: numeric("price", { precision: 10, scale: 2 }),
+  isActive: boolean("is_active").default(true).notNull(),
+  ...auditLogs,
+});
+
+/**
+ * One billable event that happened to a patient (registered, seen by a doctor, vitals taken, test done,
+ * medicine dispensed). unit_price/amount are copied from the service when charged so later price changes
+ * don't rewrite history; they stay null while the service is unpriced.
+ */
+export const ServiceChargesTable = pgTable("service_charges", {
+  id: uuid("service_charge_id").primaryKey().defaultRandom(),
+  patientId: uuid("patient_id").notNull().references(() => PatientTable.id, { onDelete: "restrict" }),
+  serviceId: uuid("billable_service_id").notNull().references(() => BillableServicesTable.id, { onDelete: "restrict" }),
+  // What produced the charge: patient | appointment | vitals | lab_result | prescription
+  sourceType: text("source_type").notNull(),
+  sourceId: uuid("source_id").notNull(),
+  description: text("description"),
+  quantity: integer("quantity").default(1).notNull(),
+  unitPrice: numeric("unit_price", { precision: 10, scale: 2 }),
+  amount: numeric("amount", { precision: 10, scale: 2 }),
+  // Copied from the patient at charge time: CASH charges go on the patient's invoice, NHIF/INSURANCE ones are claims
+  payer: paymentModeEnum("payer").notNull(),
+  // unbilled -> invoiced, or waived
+  status: text("status").default("unbilled").notNull(),
+  invoiceId: uuid("invoice_id").references((): any => InvoiceTable.id, { onDelete: "set null" }),
+  ...auditLogs,
+}, (table) => [
+  // The same event can never be charged twice for the same service
+  uniqueIndex("service_charges_source_service_unique").on(table.sourceType, table.sourceId, table.serviceId),
+]);
