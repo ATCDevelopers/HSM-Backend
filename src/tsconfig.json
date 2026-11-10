@@ -10,5 +10,7 @@
     "skipLibCheck": true,
         
     "allowSyntheticDefaultImports": true
-  }
+  },
+  // Unfinished lab-order service: nothing imports it and its repository (labTest.repository.ts) doesn't exist yet
+  "exclude": ["services/labTest.service.ts"]
 }

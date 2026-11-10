@@ -1,3 +1,4 @@
+import { chargeAppointment, waiveAppointment } from './billing.service.js';
 import {
   getDoctorSchedulesRepository,
   saveDoctorSchedulesRepository,
@@ -198,6 +199,23 @@ export const getDoctorAvailabilityService = async (
   };
 };
 
+export const getDoctorSchedulesService = async (doctorId: string) => {
+  const [schedules, leaves] = await Promise.all([
+    getDoctorSchedulesRepository(doctorId),
+    getDoctorLeavesRepository(doctorId, new Date()),
+  ]);
+  return { schedules, leaves };
+};
+
+/** Single appointment with patient and doctor names, reusing the report query's joins. */
+export const getAppointmentByIdService = async (appointmentId: string) => {
+  const [appointment] = await getAppointmentReportsRepository({ appointmentId });
+  if (!appointment) {
+    throw new Error('NOT_FOUND: Appointment not found');
+  }
+  return appointment;
+};
+
 export const setDoctorSchedulesService = async (
   doctorId: string,
   schedules: DoctorScheduleInput[],
@@ -242,7 +260,7 @@ export const bookAppointmentService = async (input: CreateAppointmentInput, user
     await assertSlotIsOpen(input.doctorId, appointmentDate, appointmentTime);
   }
 
-  return await createAppointmentWithTransaction(
+  const appointment = await createAppointmentWithTransaction(
     {
       ...input,
       appointmentDate,
@@ -250,6 +268,9 @@ export const bookAppointmentService = async (input: CreateAppointmentInput, user
     },
     userId
   );
+
+  await chargeAppointment(appointment, userId);
+  return appointment;
 };
 
 export const rescheduleAppointmentService = async (
@@ -288,7 +309,9 @@ export const cancelAppointmentService = async (
     throw new Error('REASON_REQUIRED: A valid reason is required for appointment cancellation.');
   }
 
-  return await cancelAppointmentRepository(appointmentId, reason.trim(), userId);
+  const cancelled = await cancelAppointmentRepository(appointmentId, reason.trim(), userId);
+  await waiveAppointment(appointmentId, userId);
+  return cancelled;
 };
 
 export const updateAppointmentStatusService = async (
@@ -316,12 +339,17 @@ export const updateAppointmentStatusService = async (
     throw new Error('REASON_REQUIRED: Cancelling an appointment requires a non-empty reason.');
   }
 
-  return await updateAppointmentStatusRepository(
+  const updated = await updateAppointmentStatusRepository(
     appointmentId,
     status,
     userId,
     reason ? reason.trim() : undefined
   );
+
+  if (status === 'cancelled') {
+    await waiveAppointment(appointmentId, userId);
+  }
+  return updated;
 };
 
 export const sendAppointmentRemindersService = async () => {

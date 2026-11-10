@@ -1,3 +1,5 @@
+import path from "path";
+import fs from "fs";
 import { Request, Response } from 'express';
 import { registerPatient  } from "../services/patient.service.js";
 import * as patientService from "../services/patient.service.js";
@@ -10,7 +12,7 @@ export const registerPatientController = async (
   res: Response
 ) => {
   try {
-    const patient = await registerPatient(req.body);
+    const patient = await registerPatient(req.body, (req as any).user?.id);
 
     return res.status(201).json({
       success: true,
@@ -194,12 +196,27 @@ export const uploadDocument = async (req: Request, res: Response): Promise<void>
    
     const formattedSize = `${(req.file.size / 1024).toFixed(1)} KB`;
 
+    const { sourceInstitution, documentType, documentDate, notes } = req.body ?? {};
+    if (documentType && !DOCUMENT_TYPES.includes(documentType)) {
+      res.status(400).json({ success: false, message: `Document type must be one of: ${DOCUMENT_TYPES.join(", ")}` });
+      return;
+    }
+    if (documentDate && isNaN(Date.parse(documentDate))) {
+      res.status(400).json({ success: false, message: "Document date is not a valid date" });
+      return;
+    }
+
     const savedDoc = await documentServiceInstance.uploadPatientDocument({
       patientId,
       documentName: req.file.originalname, 
       fileUrl: req.file.path,              
       mimeType: req.file.mimetype,          
       fileSize: formattedSize,
+      sourceInstitution: sourceInstitution?.trim() || null,
+      documentType: documentType || null,
+      documentDate: documentDate ? new Date(documentDate) : null,
+      notes: notes?.trim() || null,
+      createdBy: (req as any).user?.id ?? null,
     });
 
     res.status(201).json({
@@ -216,6 +233,48 @@ export const uploadDocument = async (req: Request, res: Response): Promise<void>
   }
 };
 
+
+const DOCUMENT_TYPES = ["referral_letter", "lab_report", "imaging", "discharge_summary", "prescription", "medical_report", "other"];
+const DOCUMENT_ROOT = path.resolve("uploads/documents");
+
+/**
+ * Streams one document for in-browser preview. Files are never served statically: the caller must be
+ * allowed to read the patient, the document must belong to that patient, and the stored path must
+ * resolve inside the uploads folder.
+ */
+export const streamPatientDocument = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const doc = await documentServiceInstance.getPatientDocument(String(req.params.id), String(req.params.documentId));
+    if (!doc) {
+      res.status(404).json({ success: false, message: "Document not found" });
+      return;
+    }
+    const filePath = path.resolve(doc.fileUrl);
+    if (!filePath.startsWith(DOCUMENT_ROOT + path.sep) || !fs.existsSync(filePath)) {
+      res.status(404).json({ success: false, message: "Document file is missing" });
+      return;
+    }
+    res.setHeader("Content-Type", doc.mimeType);
+    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(doc.documentName)}"`);
+    res.setHeader("Cache-Control", "private, no-store");
+    res.sendFile(filePath);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || "Failed to open document" });
+  }
+};
+
+export const deletePatientDocument = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const removed = await documentServiceInstance.removePatientDocument(String(req.params.id), String(req.params.documentId), (req as any).user?.id);
+    if (!removed) {
+      res.status(404).json({ success: false, message: "Document not found" });
+      return;
+    }
+    res.status(200).json({ success: true, message: "Document removed" });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || "Failed to remove document" });
+  }
+};
 
 export const getPatientDocuments = async (req: Request, res: Response): Promise<void> => {
   try {

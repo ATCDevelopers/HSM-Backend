@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { createUser, getUserByEmail, getAllUsers, getUserByIdSanitized, updateUser, deleteUser } from '../repositories/user.repository.js';
+import { createUser, getUserByEmail, getAllUsers, getActiveDoctors, getUserByIdSanitized, updateUser, deleteUser } from '../repositories/user.repository.js';
 import { generateAccessToken, generateRefreshToken } from '../config/auth.config.js';
 import { saveRefreshToken } from '../repositories/token.repository.js';
 import { UserTable } from '../drizzle/schema.js';
@@ -60,6 +60,10 @@ export const registerUser = async (userData: {
 
 export const fetchUsers = async (includeDeleted: boolean = false) => {
   return await getAllUsers(includeDeleted);
+};
+
+export const fetchDoctors = async () => {
+  return await getActiveDoctors();
 };
 
 export const fetchUserById = async (id: string) => {

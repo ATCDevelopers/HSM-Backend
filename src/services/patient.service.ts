@@ -7,6 +7,7 @@ import {
 } from "../repositories/patient.repository.js";
 import { createAddress } from "../repositories/patient.repository.js";
 import { Address} from "../drizzle/schema.js";
+import { chargeRegistration } from "./billing.service.js";
 
 
 
@@ -18,7 +19,9 @@ type RegisterPatientData = {
     lastName: string;
     middleName?: string;
     gender: typeof PatientTable.$inferInsert.gender;
-    nhifCard: string;
+    /** Required unless the patient pays cash. */
+    nhifCard?: string | null;
+    paymentMode?: typeof PatientTable.$inferInsert.paymentMode;
     email: string;
     dateOfBirth: string;
     bloodGroup: typeof PatientTable.$inferInsert.bloodGroup;
@@ -38,13 +41,21 @@ type RegisterPatientData = {
 };
 
 export const registerPatient = async (
-  data: RegisterPatientData
+  data: RegisterPatientData,
+  userId?: string
 ) => {
-  // Check NHIF
-  const existingPatientByNhif =
-    await getPatientByNhifCard(data.patient.nhifCard);
+  const paymentMode = data.patient.paymentMode ?? "NHIF";
+  if (!["NHIF", "INSURANCE", "CASH"].includes(paymentMode)) {
+    throw new Error("Payment mode must be NHIF, INSURANCE or CASH");
+  }
+  // Cash patients have no card; insured ones must give theirs.
+  const nhifCard = paymentMode === "CASH" ? null : data.patient.nhifCard?.trim() || null;
+  if (paymentMode !== "CASH" && !nhifCard) {
+    throw new Error(`${paymentMode === "NHIF" ? "NHIF" : "Insurance"} card number is required`);
+  }
 
-  if (existingPatientByNhif) {
+  // Check NHIF
+  if (nhifCard && (await getPatientByNhifCard(nhifCard))) {
     throw new Error("NHIF card already registered");
   }
 
@@ -72,7 +83,8 @@ export const registerPatient = async (
     lastName: data.patient.lastName,
     middleName: data.patient.middleName ?? null,
     gender: data.patient.gender,
-    nhifCard: data.patient.nhifCard,
+    nhifCard,
+    paymentMode,
     email: data.patient.email,
     dateOfBirth: new Date(data.patient.dateOfBirth),
     bloodGroup: data.patient.bloodGroup,
@@ -81,6 +93,9 @@ export const registerPatient = async (
     nationalId: data.patient.nationalId ?? null,
     addressId: address.id,
   });
+
+  // Cash patients are billed the account-opening fee; insured patients are not.
+  await chargeRegistration(patient, userId);
 
   return {
     patient,
@@ -157,7 +172,11 @@ export const updatePatientAndAddress = async (
   if (patientData.middleName !== undefined) sanitizedPatient.middleName = patientData.middleName;
   if (patientData.gender !== undefined) sanitizedPatient.gender = patientData.gender;
   if (patientData.nhifCard !== undefined || patientData.nhifNumber !== undefined) {
-    sanitizedPatient.nhifCard = patientData.nhifCard || patientData.nhifNumber;
+    // Empty means "no card" (cash patient); storing "" would collide with other cash patients on the unique column.
+    sanitizedPatient.nhifCard = (patientData.nhifCard || patientData.nhifNumber || "").trim() || null;
+  }
+  if (patientData.paymentMode !== undefined && ["NHIF", "INSURANCE", "CASH"].includes(patientData.paymentMode)) {
+    sanitizedPatient.paymentMode = patientData.paymentMode;
   }
   if (patientData.email !== undefined) sanitizedPatient.email = patientData.email;
   if (patientData.dateOfBirth !== undefined) {
@@ -395,6 +414,14 @@ export class DocumentService {
    */
   async getPatientDocumentsList(patientId: string) {
     return await this.documentRepository.getDocumentsByPatientId(patientId);
+  }
+
+  async getPatientDocument(patientId: string, documentId: string) {
+    return await this.documentRepository.getDocument(patientId, documentId);
+  }
+
+  async removePatientDocument(patientId: string, documentId: string, userId?: string) {
+    return await this.documentRepository.softDeleteDocument(patientId, documentId, userId);
   }
 }
 

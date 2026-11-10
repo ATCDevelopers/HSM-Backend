@@ -22,7 +22,7 @@ router.post(
  * @note    MUST be placed above /:id so Express does not mistake the word 'patient' for an ID
  */
 router.get(
-  "/patient/:patientId/audit",
+  "/vitals/patient/:patientId/audit",
   checkAbility("read", "Vitals"),
   vitalsController.getAuditedVitals
 );
@@ -43,7 +43,7 @@ router.get(
 
 
 router.get(
-  "/patient/:patientId", 
+  "/vitals/patient/:patientId", 
   checkAbility("read", "Vitals"), 
   vitalsController.getByPatientId
 );
@@ -68,7 +68,7 @@ router.patch(
  * @desc    Compliant Soft Delete: Flags record as disabled instead of dropping row data
  */
 router.delete(
-  "/:id", 
+  "/vitals/:id", 
 checkAbility("delete", "Vitals"), 
   vitalsController.delete
 );

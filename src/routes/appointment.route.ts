@@ -11,6 +11,8 @@ import {
 } from '../middleware/appointment.middleware.js';
 import {
   getDoctorAvailabilityController,
+  getDoctorScheduleController,
+  getAppointmentByIdController,
   setDoctorScheduleController,
   createAppointmentController,
   rescheduleAppointmentController,
@@ -87,6 +89,21 @@ router.get(
   authenticateToken,
   checkAbility('read', 'Report'),
   getReportsController
+);
+
+router.get(
+  '/doctors/:doctorId/schedules',
+  authenticateToken,
+  checkAbility('read', 'Appointment'),
+  getDoctorScheduleController
+);
+
+// Registered after /appointments/reports so "reports" is never captured as an appointment id.
+router.get(
+  '/appointments/:appointmentId',
+  authenticateToken,
+  checkAbility('read', 'Appointment'),
+  getAppointmentByIdController
 );
 
 export default router;

@@ -5,6 +5,7 @@
  */
 
 import { vitalsRepository, NewVitals, Vitals } from "../repositories/vitals.repository.js";
+import { chargeVitals } from "./billing.service.js";
 
 export const vitalsService = {
   /**
@@ -15,7 +16,9 @@ export const vitalsService = {
     if (!data.patientId) {
       throw new Error("Patient ID is strictly required to log vitals.");
     }
-    return await vitalsRepository.create(data);
+    const vitals = await vitalsRepository.create(data);
+    await chargeVitals(vitals, data.createdBy ?? undefined);
+    return vitals;
   },
 
   /**

@@ -2,6 +2,8 @@ import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import {
   getDoctorAvailabilityService,
+  getDoctorSchedulesService,
+  getAppointmentByIdService,
   setDoctorSchedulesService,
   bookAppointmentService,
   rescheduleAppointmentService,
@@ -16,9 +18,10 @@ import { AppointmentReportFilters } from '../repositories/appointment.repository
  * `checkAbility('read', 'Report')` only proves the role holds *some* Report rule; CASL
  * cannot apply an attribute condition to a subject type. These two roles are the only
  * ones whose rule is unconditional (`manage all` / `manage Report`), plus Receptionist
- * who needs the full front-desk board to book against. Everyone else is narrowed below.
+ * who needs the full front-desk board to book against and Nurse who works the patient
+ * queue (read-only). Everyone else is narrowed below.
  */
-const UNRESTRICTED_REPORT_ROLES = ['Admin', 'ClinicManager', 'Receptionist'];
+const UNRESTRICTED_REPORT_ROLES = ['Admin', 'ClinicManager', 'Receptionist', 'Nurse'];
 
 export const getDoctorAvailabilityController = async (
   req: AuthenticatedRequest,
@@ -40,6 +43,47 @@ export const getDoctorAvailabilityController = async (
       return;
     }
     res.status(500).json({ error: error.message || 'Failed to retrieve doctor availability' });
+  }
+};
+
+export const getDoctorScheduleController = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const result = await getDoctorSchedulesService(req.params.doctorId as string);
+    res.status(200).json({
+      message: 'Doctor schedule retrieved successfully',
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to retrieve doctor schedule' });
+  }
+};
+
+export const getAppointmentByIdController = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const appointment = await getAppointmentByIdService(req.params.appointmentId as string);
+
+    // Same ownership rule as reports: a doctor may only open their own appointments.
+    if (req.user?.role === 'Doctor' && appointment.doctorId !== req.user.id) {
+      res.status(403).json({ error: 'Forbidden: this appointment belongs to another doctor.' });
+      return;
+    }
+
+    res.status(200).json({
+      message: 'Appointment retrieved successfully',
+      data: appointment,
+    });
+  } catch (error: any) {
+    if (error.message && error.message.startsWith('NOT_FOUND')) {
+      res.status(404).json({ error: 'Appointment not found' });
+      return;
+    }
+    res.status(500).json({ error: error.message || 'Failed to retrieve appointment' });
   }
 };
 

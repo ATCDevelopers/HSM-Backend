@@ -4,7 +4,9 @@
  * @author [Your Name Here]
  */
 
-import { prescriptionsRepository, NewPrescription, Prescription } from "../repositories/perscription.respository.js";
+import { prescriptionsRepository, NewPrescription, Prescription } from "../repositories/prescription.repository.js";
+import { statusRepository } from "../repositories/status.repository.js";
+import { chargeDispense } from "./billing.service.js";
 
 export const prescriptionsService = {
   /**
@@ -50,6 +52,27 @@ export const prescriptionsService = {
       throw new Error("Prescription query term entries must contain at least 2 characters.");
     }
     return await prescriptionsRepository.findByPatientName(trimmedName);
+  },
+
+  /**
+   * Pharmacy queue, optionally limited to one status name (pending, dispensed, cancelled)
+   */
+  async listPrescriptions(statusName?: string) {
+    return await prescriptionsRepository.findAll(statusName?.trim() || undefined);
+  },
+
+  /**
+   * Dispense a pending prescription: deducts stock for every item and marks it dispensed, atomically.
+   */
+  async dispensePrescription(id: string, userId: string) {
+    const statuses = await statusRepository.findAll("prescription");
+    const dispensed = statuses.find((s) => s.name === "dispensed");
+    if (!dispensed) {
+      throw new Error("CONFIG: The 'dispensed' prescription status is missing; run `npm run seed:statuses`.");
+    }
+    const result = await prescriptionsRepository.dispense(id, dispensed.id, userId);
+    await chargeDispense(result.prescription, result.dispensed, userId);
+    return result;
   },
 
   /**

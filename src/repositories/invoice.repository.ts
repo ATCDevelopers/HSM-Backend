@@ -1,6 +1,24 @@
 import { db } from "../config/db.js";
 import { eq, desc } from "drizzle-orm";
-import { InvoiceTable, UserTable, StatusTable } from "../drizzle/schema.js";
+import { InvoiceTable, PatientTable, StatusTable } from "../drizzle/schema.js";
+
+// Invoice row with patient and status names joined in, shared by every read query.
+const invoiceWithNames = () =>
+  db
+    .select({
+      id: InvoiceTable.id,
+      invoiceNumber: InvoiceTable.invoiceNumber,
+      patientId: InvoiceTable.patientId,
+      patientFirstName: PatientTable.firstName,
+      patientLastName: PatientTable.lastName,
+      statusId: InvoiceTable.statusId,
+      statusName: StatusTable.name,
+      createdAt: InvoiceTable.createdAt,
+      updatedAt: InvoiceTable.updatedAt
+    })
+    .from(InvoiceTable)
+    .leftJoin(PatientTable, eq(InvoiceTable.patientId, PatientTable.id))
+    .leftJoin(StatusTable, eq(InvoiceTable.statusId, StatusTable.id));
 
 export const invoiceRepository = {
   /**
@@ -15,21 +33,7 @@ export const invoiceRepository = {
    * Fetches a single invoice profile alongside its structural relational joins.
    */
   async findById(id: string) {
-    const [result] = await db
-      .select({
-        id: InvoiceTable.id,
-        invoiceNumber: InvoiceTable.invoiceNumber,
-        patientId: InvoiceTable.patientId,
-        patientName: UserTable.firstName, // Joined field from UserTable
-        statusId: InvoiceTable.statusId,
-        statusName: StatusTable.name,     // Joined field from StatusTable
-        createdAt: InvoiceTable.createdAt,
-        updatedAt: InvoiceTable.updatedAt
-      })
-      .from(InvoiceTable)
-      .leftJoin(UserTable, eq(InvoiceTable.patientId, UserTable.id))
-      .leftJoin(StatusTable, eq(InvoiceTable.statusId, StatusTable.id))
-      .where(eq(InvoiceTable.id, id));
+    const [result] = await invoiceWithNames().where(eq(InvoiceTable.id, id));
     
     return result || null;
   },
@@ -49,9 +53,7 @@ export const invoiceRepository = {
    * Retrieves all invoices linked to a single patient UUID context.
    */
   async findByPatientId(patientId: string) {
-    return await db
-      .select()
-      .from(InvoiceTable)
+    return await invoiceWithNames()
       .where(eq(InvoiceTable.patientId, patientId))
       .orderBy(desc(InvoiceTable.createdAt));
   },
@@ -60,10 +62,7 @@ export const invoiceRepository = {
    * Lists every invoice entry in descending order of creation.
    */
   async findAll() {
-    return await db
-      .select()
-      .from(InvoiceTable)
-      .orderBy(desc(InvoiceTable.createdAt));
+    return await invoiceWithNames().orderBy(desc(InvoiceTable.createdAt));
   },
 
   /**

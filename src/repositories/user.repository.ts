@@ -1,6 +1,6 @@
 import { db } from '../config/db.js';
 import { UserTable } from '../drizzle/schema.js';
-import { eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 export const createUser = async (userData: typeof UserTable.$inferInsert) => {
   const result = await db.insert(UserTable).values(userData).returning();
@@ -28,6 +28,7 @@ export const getUserByIdSanitized = async (id: string) => {
       phoneNumber: UserTable.phoneNumber,
       role: UserTable.role,
       departmentId: UserTable.departmentId,
+      availability: UserTable.availability,
       imagePath: UserTable.imagePath,
       isDeleted: UserTable.isDeleted,
       deletedAt: UserTable.deletedAt,
@@ -55,6 +56,7 @@ export const getAllUsers = async (includeDeleted: boolean = false) => {
       phoneNumber: UserTable.phoneNumber,
       role: UserTable.role,
       departmentId: UserTable.departmentId,
+      availability: UserTable.availability,
       imagePath: UserTable.imagePath,
       isDeleted: UserTable.isDeleted,
       deletedAt: UserTable.deletedAt,
@@ -71,6 +73,20 @@ export const getAllUsers = async (includeDeleted: boolean = false) => {
     ...user,
     status: user.isDeleted ? "INACTIVE" : "ACTIVE",
   }));
+};
+
+/** Public-safe doctor directory (no contact details) used by booking and scheduling screens. */
+export const getActiveDoctors = async () => {
+  return await db
+    .select({
+      id: UserTable.id,
+      firstName: UserTable.firstName,
+      lastName: UserTable.lastName,
+      departmentId: UserTable.departmentId,
+      availability: UserTable.availability,
+    })
+    .from(UserTable)
+    .where(and(eq(UserTable.role, 'Doctor'), isNull(UserTable.deletedAt)));
 };
 
 export const updateUser = async (id: string, updateData: Partial<typeof UserTable.$inferInsert>) => {
@@ -90,6 +106,7 @@ export const updateUser = async (id: string, updateData: Partial<typeof UserTabl
       phoneNumber: UserTable.phoneNumber,
       role: UserTable.role,
       departmentId: UserTable.departmentId,
+      availability: UserTable.availability,
       imagePath: UserTable.imagePath,
       isDeleted: UserTable.isDeleted,
       deletedAt: UserTable.deletedAt,

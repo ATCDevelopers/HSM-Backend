@@ -11,3 +11,4 @@ drizzle.config.ts
 .postman
 postman 
 uploads
+/dist

@@ -1,7 +1,31 @@
 import { Request, Response, NextFunction } from "express";
-import { prescriptionsService } from "../services/perscription.service.js";
+import { prescriptionsService } from "../services/prescription.service.js";
+
+/** Maps the dispense transaction's error prefixes to HTTP statuses. */
+const DISPENSE_ERROR_STATUS: Record<string, number> = { NOT_FOUND: 404, INVALID_STATE: 409, INSUFFICIENT_STOCK: 409, EMPTY: 400, CONFIG: 500 };
 
 export const prescriptionsController = {
+  async list(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const results = await prescriptionsService.listPrescriptions(req.query.status as string | undefined);
+      res.status(200).json({ success: true, data: results });
+    } catch (error: any) {
+      res.status(400).json({ success: false, error: error.message });
+    }
+  },
+
+  async dispense(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = (req as any).user.id;
+      const result = await prescriptionsService.dispensePrescription(req.params.id as string, userId);
+      res.status(200).json({ success: true, message: "Prescription dispensed", data: result });
+    } catch (error: any) {
+      const [code] = String(error.message).split(":");
+      const status = DISPENSE_ERROR_STATUS[code] ?? 500;
+      res.status(status).json({ success: false, error: String(error.message).replace(/^[A-Z_]+:\s*/, "") });
+    }
+  },
+
   async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const record = await prescriptionsService.recordPrescription(req.body);

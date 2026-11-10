@@ -22,7 +22,8 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
 
   const decoded = verifyToken(token);
   if (!decoded) {
-    res.status(403).json({ error: 'Invalid or expired token' });
+    // 401 (not 403) so the frontend interceptor knows to try a token refresh
+    res.status(401).json({ error: 'Invalid or expired token' });
     return;
   }
 
