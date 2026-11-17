@@ -390,19 +390,6 @@ export const departmentAppointmentRelations = relations(departmentAppointment, (
 
 
 
-
-///////////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
-
-
-
-
-
-
 // 9. Table Vitals 
 
 
@@ -567,12 +554,11 @@ export const labSampleTypes = pgTable("lab_sample_types", {
 
 export const labTests = pgTable('lab_tests', {
   id: uuid('id').defaultRandom().primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(), 
-  category: varchar('category', { length: 100 }).notNull(), 
-  description: text('description'),
-  
-  // Explicitly casting the jsonb schema block assists the driver during binding map lookups
-  formSchema: jsonb('form_schema').$type<any[]>().notNull(), 
+ // Inside your lab_tests pgTable definition:
+name: varchar("name", { length: 255 }).default("General Test").notNull(),
+category: varchar("category", { length: 100 }).default("General").notNull(),
+description: text("description"),
+formSchema: jsonb("form_schema").default({}).notNull(),
 
   ...auditLogs
 });

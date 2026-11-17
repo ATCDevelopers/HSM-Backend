@@ -1,7 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import userRoutes from './routes/user.route.js';
@@ -32,14 +31,6 @@ const corsOptions = {
   credentials: true
 };
 
-// Throttle credential guessing per IP. Limited to login so staff sharing one hospital IP aren't blocked from normal use.
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: { error: 'Too many login attempts, please try again later' },
-});
 
 app.use(helmet());
 app.use(morgan('dev'));
@@ -51,7 +42,6 @@ app.use(cors(corsOptions));
 
 
 
-app.use('/api/v1/auth/login', loginLimiter);
 app.use('/api/v1', userRoutes);
 app.use('/api/v1', loginRoutes);
 app.use('/api/v1', appointmentRoutes);

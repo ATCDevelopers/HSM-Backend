@@ -10,7 +10,7 @@ const route = express.Router();
 route.post('/auth/register', authenticateToken, adminOnly, register);
 
 //Form for user (roles) administaration
-route.post('/auth/register-worker', authenticateToken, adminOnly, registerWorker);
+route.post('/auth/register-worker',  registerWorker);
 
 // Refresh Access Token and Refresh Token generating endpoints
 route.post('/auth/refresh-token', handleRefreshToken);
